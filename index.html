@@ -43,7 +43,8 @@
     .touch-zone { fill:transparent; cursor:pointer; }
     .hint { pointer-events:none; opacity:0; transition:opacity .2s; }
     .art.show-hints .hint { opacity:1; }
-    .hint circle { fill:#471626b8; stroke:#f0d8d9; stroke-width:2; }
+    .hint rect,.hint ellipse { fill:#47162665; stroke:#f0d8d9; stroke-width:2; stroke-dasharray:8 5; }
+    .hint text { filter:drop-shadow(0 1px 3px #000); }
     .hint text { fill:white; font-weight:700; font-size:25px; text-anchor:middle; stroke:#421e2e; paint-order:stroke; stroke-width:3; }
     .scene-label { position:absolute; z-index:3; top:15px; left:17px; pointer-events:none; text-shadow:0 1px 9px #000; font:10px Georgia,serif; letter-spacing:.22em; }
     .scene-label span { display:block; font:10px -apple-system,BlinkMacSystemFont,sans-serif; letter-spacing:.05em; margin-top:6px; color:#efced5; }
@@ -138,24 +139,10 @@
     <div class="scene-label">SHINONOME REN<span>好きな場所に触れてみて</span></div>
     <svg class="art" id="art" viewBox="0 0 1280 960" preserveAspectRatio="xMidYMid slice" aria-label="蓮のイラスト。頭、目、頬、口、肩、服、手をタップできます">
       <image id="characterImage" href="ren.jpg" width="1280" height="960"></image>
-      <rect class="touch-zone" data-zone="other" width="1280" height="960"></rect>
-      <path class="touch-zone" data-zone="shoulder" d="M170 350 L430 300 L505 540 L460 755 L185 730 Z M865 375 L1185 425 L1240 735 L925 810 L870 570 Z"></path>
-      <path class="touch-zone" data-zone="uniform" d="M470 610 L900 605 L1020 860 L435 850 Z"></path>
-      <path class="touch-zone" data-zone="hair" d="M360 0 L1020 0 L1055 250 L970 382 L850 405 L510 405 L375 325 Z"></path>
-      <path class="touch-zone" data-zone="face" d="M485 350 Q685 305 928 360 L905 535 Q830 645 690 655 Q510 622 478 495 Z"></path>
-      <path class="touch-zone" data-zone="eyes" d="M506 353 Q695 322 895 355 L881 434 Q678 454 511 432 Z"></path>
-      <path class="touch-zone" data-zone="cheek" d="M505 443 Q555 425 640 452 L635 548 L524 545 Z M770 450 Q835 418 888 445 L861 549 L777 543 Z"></path>
-      <path class="touch-zone" data-zone="lips" d="M612 525 Q697 510 782 526 L780 607 Q693 624 623 595 Z"></path>
-      <path class="touch-zone" data-zone="hand" d="M470 730 L680 785 L810 785 L900 925 L885 960 L585 960 L485 845 Z"></path>
-      <g class="hint">
-        <g transform="translate(700 190)"><circle r="50"/><text y="9">頭</text></g>
-        <g transform="translate(696 392)"><circle r="42"/><text y="9">目</text></g>
-        <g transform="translate(556 493)"><circle r="43"/><text y="9">頬</text></g>
-        <g transform="translate(715 568)"><circle r="39"/><text y="9">口</text></g>
-        <g transform="translate(295 575)"><circle r="48"/><text y="9">肩</text></g>
-        <g transform="translate(750 728)"><circle r="48"/><text y="9">服</text></g>
-        <g transform="translate(696 879)"><circle r="47"/><text y="9">手</text></g>
+      <g id="touchAreas">
+        <!-- タップ判定は tap-zones.json から自動で読み込みます -->
       </g>
+      <g id="touchHints" class="hint" aria-hidden="true"></g>
     </svg>
     <div class="scene-help">TAP / LONG PRESS</div>
   </main>
@@ -245,6 +232,94 @@
     {id:"second",file:"ren2.jpg",name:"衣装 02",note:"ren2.jpg を追加"},
     {id:"third",file:"ren3.jpg",name:"衣装 03",note:"ren3.jpg を追加"}
   ];
+  // ── 画像別のタップ判定 ──
+  // ゲームをGitHubで公開する際、tap-zones.jsonも一緒にアップロードしてください。
+  // 画像の座標は「元画像の左上を0%、右下を100%」とする割合です。
+  // 設定ファイルがない場合も最初の画像では基本的な判定が使えます。
+  const DEFAULT_TOUCH_ZONES = [{"zone":"shoulder","shape":"ellipse","x":12.7,"y":30,"w":29,"h":51},{"zone":"shoulder","shape":"ellipse","x":67.5,"y":37,"w":30,"h":49},{"zone":"uniform","shape":"rect","x":35,"y":63,"w":45,"h":28},{"zone":"hair","shape":"ellipse","x":27.5,"y":0,"w":55,"h":43},{"zone":"face","shape":"ellipse","x":37,"y":34,"w":37,"h":35},{"zone":"eyes","shape":"ellipse","x":39,"y":36,"w":31,"h":10},{"zone":"cheek","shape":"ellipse","x":39.5,"y":45,"w":12.5,"h":13},{"zone":"cheek","shape":"ellipse","x":59.7,"y":44,"w":12,"h":14},{"zone":"lips","shape":"ellipse","x":47.5,"y":54,"w":14.5,"h":10},{"zone":"hand","shape":"ellipse","x":36,"y":76,"w":37,"h":24}];
+  const VALID_ZONES = new Set(["hair","face","eyes","cheek","lips","hand","shoulder","uniform"]);
+  let touchSettings = {images:{default:{zones:DEFAULT_TOUCH_ZONES}}};
+  let imageSize = {width:1280,height:960};
+  let imageRenderToken=0;
+  const SVG_NS="http://www.w3.org/2000/svg";
+  function validHotspots(items){
+    if(!Array.isArray(items))return [];
+    return items.slice(0,100).filter(item=>{
+      if(!item || !VALID_ZONES.has(item.zone) || !["ellipse","rect"].includes(item.shape))return false;
+      return ["x","y","w","h"].every(key=>typeof item[key]==="number"&&Number.isFinite(item[key]))
+          && item.x>=0 && item.y>=0 && item.w>0 && item.h>0
+          && item.x+item.w<=100.001 && item.y+item.h<=100.001;
+    });
+  }
+  async function loadTouchSettings(){
+    try {
+      const response=await fetch("tap-zones.json",{cache:"no-store"});
+      if(!response.ok)throw new Error("設定ファイルなし");
+      const config=await response.json();
+      if(config.version!==1 || !config.images || typeof config.images!=="object")throw new Error("設定形式が違います");
+      const cleaned={};
+      Object.entries(config.images).forEach(([id,item])=>{
+        if(!/^[a-zA-Z0-9_-]{1,40}$/.test(id)||!item||typeof item!=="object")return;
+        cleaned[id]={zones:validHotspots(item.zones)};
+        const file=typeof item.file==="string"?item.file:"";
+        const name=typeof item.name==="string"?item.name:"";
+        // 外部URLではなく、ゲームに置いた画像ファイルのみ読み込みます。
+        if(/^[a-zA-Z0-9_-]+\.(png|jpg|jpeg|webp)$/i.test(file)){
+          const existing=IMAGES.find(image=>image.id===id);
+          if(existing){existing.file=file;if(name)existing.name=name.slice(0,40);}
+          else IMAGES.push({id,file,name:name.slice(0,40)||id,note:"追加画像"});
+        }
+      });
+      touchSettings={images:cleaned};
+    }catch(error){
+      // file:// でローカルプレビューするときや未設定のときの保険です。
+      console.info("tap-zones.json: 初期設定を使用します",error.message);
+    }
+  }
+  // タップ領域の優先度。後に置いた小さい部位が上に重なる設計。
+  const ZONE_ORDER={shoulder:0,uniform:1,hair:2,face:3,eyes:4,cheek:5,lips:6,hand:7};
+  function drawTouchZones(){
+    const svg=$("art"), layer=$("touchAreas"), hints=$("touchHints");
+    const width=imageSize.width, height=imageSize.height;
+    svg.setAttribute("viewBox",`0 0 ${width} ${height}`);
+    $("characterImage").setAttribute("width",width);
+    $("characterImage").setAttribute("height",height);
+    layer.replaceChildren();hints.replaceChildren();
+    const fallback=document.createElementNS(SVG_NS,"rect");
+    fallback.setAttribute("x",0);fallback.setAttribute("y",0);
+    fallback.setAttribute("width",width);fallback.setAttribute("height",height);
+    fallback.setAttribute("class","touch-zone");fallback.dataset.zone="other";
+    layer.append(fallback);
+    const record=touchSettings.images[game.imageId];
+    const zones=record && Array.isArray(record.zones)?record.zones:game.imageId==="default"?DEFAULT_TOUCH_ZONES:[];
+    [...zones].sort((a,b)=>ZONE_ORDER[a.zone]-ZONE_ORDER[b.zone]).forEach(item=>{
+      const x=item.x/100*width,y=item.y/100*height,w=item.w/100*width,h=item.h/100*height;
+      const shape=document.createElementNS(SVG_NS,item.shape);
+      if(item.shape==="ellipse"){
+        shape.setAttribute("cx",x+w/2);shape.setAttribute("cy",y+h/2);
+        shape.setAttribute("rx",w/2);shape.setAttribute("ry",h/2);
+      }else{shape.setAttribute("x",x);shape.setAttribute("y",y);shape.setAttribute("width",w);shape.setAttribute("height",h);}
+      shape.setAttribute("class","touch-zone");shape.dataset.zone=item.zone;layer.append(shape);
+      const marker=shape.cloneNode(false);
+      marker.removeAttribute("data-zone");marker.removeAttribute("class");hints.append(marker);
+      const label=document.createElementNS(SVG_NS,"text");
+      label.setAttribute("x",x+w/2);label.setAttribute("y",y+h/2+Math.min(8,height/100));
+      label.setAttribute("font-size",Math.min(24,width/48));
+      label.textContent=NAMES[item.zone]||item.zone;hints.append(label);
+    });
+  }
+  function refreshCharacterImage(file){
+    const token=++imageRenderToken;
+    const img=new Image();
+    img.onload=()=>{
+      if(token!==imageRenderToken)return;
+      imageSize={width:img.naturalWidth,height:img.naturalHeight};
+      drawTouchZones();
+    };
+    img.onerror=()=>{if(token===imageRenderToken)drawTouchZones();};
+    img.src=file;
+  }
+
   const GIFTS = [
     {id:"coffee",name:"缶コーヒー",icon:"☕",price:25,xp:12,level:1,lines:["……コーヒー？ ああ、助かる。ありがとよ。", "俺の分か。……ありがとな。"]},
     {id:"bandage",name:"絆創膏",icon:"✚",price:35,xp:16,level:1,lines:["……よく気づいたな。……大した傷じゃねえよ。", "お前、変なとこ気が利くよな。……ありがと。"]},
@@ -409,7 +484,8 @@
     const image=IMAGES.find(item=>item.id===id)||IMAGES[0];
     if(!availableImages.has(image.id)&&image.id!=="default")return;
     game.imageId=image.id;$("characterImage").setAttribute("href",image.file);
-    $("scene").style.setProperty("--photo",`url('${image.file}')`);save();
+    $("scene").style.setProperty("--photo",`url('${image.file}')`);
+    refreshCharacterImage(image.file);save();
   }
   function renderImages(){
     openSheet("ILLUSTRATIONS","navImages");
@@ -427,7 +503,7 @@
       btn.append(title,small);btn.addEventListener("click",()=>{switchImage(item.id);renderImages();toast("表示するイラストを変更しました");});gallery.append(btn);
     });body.append(gallery);
     const note=document.createElement("p");note.className="subtext";note.style.marginTop="13px";
-    note.textContent="※ タップ判定を調整できます。";body.append(note);
+    note.textContent="※ タップ判定は制作者がPC用エディターで画像ごとに設定しています。";body.append(note);
   }
   $("navImages").addEventListener("click",renderImages);
   // ── 会話履歴・解放状況 ──
@@ -511,7 +587,10 @@
   });
   function updateClock(){ $("clock").textContent=new Date().toLocaleTimeString("ja-JP",{hour:"2-digit",minute:"2-digit"}); renderStats(); }
   updateClock();setInterval(updateClock,60000);
-  syncSettings();switchImage(game.imageId);loadImageOptions();
+  (async function initializeGame(){
+    await loadTouchSettings();
+    syncSettings();switchImage(game.imageId);loadImageOptions();
+  })();
 </script>
 </body>
 </html>

@@ -1,0 +1,101 @@
+{
+  "version": 1,
+  "images": {
+    "default": {
+      "file": "ren.jpg",
+      "name": "帝国軍服",
+      "zones": [
+        {
+          "zone": "shoulder",
+          "shape": "ellipse",
+          "x": 12.7,
+          "y": 30,
+          "w": 29,
+          "h": 51
+        },
+        {
+          "zone": "shoulder",
+          "shape": "ellipse",
+          "x": 67.5,
+          "y": 37,
+          "w": 30,
+          "h": 49
+        },
+        {
+          "zone": "uniform",
+          "shape": "rect",
+          "x": 35,
+          "y": 63,
+          "w": 45,
+          "h": 28
+        },
+        {
+          "zone": "hair",
+          "shape": "ellipse",
+          "x": 27.5,
+          "y": 0,
+          "w": 55,
+          "h": 43
+        },
+        {
+          "zone": "face",
+          "shape": "ellipse",
+          "x": 37,
+          "y": 34,
+          "w": 37,
+          "h": 35
+        },
+        {
+          "zone": "eyes",
+          "shape": "ellipse",
+          "x": 39,
+          "y": 36,
+          "w": 31,
+          "h": 10
+        },
+        {
+          "zone": "cheek",
+          "shape": "ellipse",
+          "x": 39.5,
+          "y": 45,
+          "w": 12.5,
+          "h": 13
+        },
+        {
+          "zone": "cheek",
+          "shape": "ellipse",
+          "x": 59.7,
+          "y": 44,
+          "w": 12,
+          "h": 14
+        },
+        {
+          "zone": "lips",
+          "shape": "ellipse",
+          "x": 47.5,
+          "y": 54,
+          "w": 14.5,
+          "h": 10
+        },
+        {
+          "zone": "hand",
+          "shape": "ellipse",
+          "x": 36,
+          "y": 76,
+          "w": 37,
+          "h": 24
+        }
+      ]
+    },
+    "second": {
+      "file": "ren2.jpg",
+      "name": "衣装 02",
+      "zones": []
+    },
+    "third": {
+      "file": "ren3.jpg",
+      "name": "衣装 03",
+      "zones": []
+    }
+  }
+}
