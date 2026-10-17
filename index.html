@@ -209,32 +209,32 @@
   const LINES = {
     hair: ["……おい、髪ぐしゃぐしゃにすんな。", "なんだよ。撫でたいなら、先に言えって。", "……そんなに触り心地いいか？"],
     face: ["近いって。……いや、離れろとは言ってねえけど。", "……俺の顔、そんなに面白いかよ。"],
-    eyes: ["……目、合わせてくるんじゃねえよ。", "んなに見つめんな。……落ち着かねえ。", "……何か言いてえことでもあんのか。"],
+    eyes: ["……目、合わせてくるんじゃねえよ。", "そんなに見つめんな。……落ち着かねえ。", "……何か言いてえことでもあんのか。"],
     cheek: ["……頬、つつくなって。", "……お前、結構遠慮ねえよな。", "なに。そんなに俺の反応が見たいのかよ。"],
-    lips: ["……そこは、さすがに反則だろ。", "おい。……分かっててやってんのか？"],
+    lips: ["……っ、なんだよ。", "おい。……分かっててやってんのか？"],
     hand: ["……手、繋ぎたいのか？", "ほら。……握るなら、ちゃんと握れ。", "お前の手、あったけえな。"],
     shoulder: ["……肩？ 何かついてるか？", "そんなに気になるなら、隣来いよ。", "……別に、寄りかかってもいいけど。"],
-    uniform: ["服が気になるのか？ ……変なとこ触んなよ。", "似合ってる？ ……あっそ。ありがと。", "……そんなにじろじろ見るなって。"],
+    uniform: ["服が気になるのか？ ……変なとこ触んなよ。", "似合ってる？ ……そうかよ", "……そんなにじろじろ見んな。"],
     other: ["……ん？ どうした。", "お前、さっきから落ち着きねえな。", "何か言いたいことでもあんのか？"],
-    talk: ["今日、何してたんだよ。……別に、気になっただけ。", "暇なら、もう少しここにいろよ。", "ちゃんと飯食ったか？ ……ならいい。"]
+    talk: ["今日、何してたんだよ。……別に、気になっただけだろ。", "暇なら、もう少しここにいろ。", "ちゃんと飯食ったか？ ……ならいい。"]
   };
   const UNLOCK = [
     {level:2,zone:"hair",text:"……別に、撫でられんのが嫌なわけじゃねえ。"},
     {level:3,zone:"hand",text:"……ほら、こっち来い。手、離すなよ。"},
     {level:3,zone:"cheek",text:"……お前に触られんの、もう慣れちまった。"},
-    {level:4,zone:"eyes",text:"……そんな目で見られたら、逸らせねえだろ。"},
-    {level:5,zone:"talk",text:"……お前が来るの、少し待ってた。……少しだけな。"},
+    {level:4,zone:"eyes",text:"……そんな顔で見んな。"},
+    {level:5,zone:"talk",text:"……お前が来るの、待ってた。"},
     {level:6,zone:"lips",text:"……近くにいてくれりゃ、それでいい。"},
     {level:7,zone:"hand",text:"手、離したくねえ。……今だけは。"}
   ];
   const RAPID = {
-    hair:"……何回撫でりゃ気が済むんだよ！", face:"……ちょ、近いってば！", eyes:"そんな見んな！ ……照れるだろ。",
+    hair:"……何回撫でりゃ気が済むんだよ！", face:"……っおい、近え！", eyes:"あんま調子乗んなよ。",
     cheek:"おい、何回つつくんだ。……っ、くそ。", lips:"……おい。わざとだろ。", hand:"分かった、分かったから。……手、貸せよ。",
     shoulder:"何回叩くんだよ、呼べば聞こえる。",uniform:"服がそんなに珍しいかよ。",other:"……お前、俺で遊んでんだろ。",talk:"……せっかちだな、お前。"
   };
   const HOLD = {
     hair:"……ずいぶん長く撫でてくれるじゃねえか。", face:"……そんな触り方されたら、動けねえだろ。", eyes:"……まだ、見てるつもりかよ。",
-    cheek:"……あったかいな、お前の手。", lips:"……それ以上は、知らねえからな。", hand:"……ん。しばらくこのままでいろよ。",
+    cheek:"……あったけえな、お前の手。", lips:"……それ以上は、知らねえからな。", hand:"……ん。しばらくこのままでいろよ。",
     shoulder:"……なんだよ。甘えたいのか？",uniform:"……そんなに掴んで、離したくねえのか？",other:"……おい。ここにいるって。"
   };
   const NAMES = {hair:"頭",face:"顔",eyes:"目",cheek:"頬",lips:"口元",hand:"手",shoulder:"肩",uniform:"服",other:"背景",talk:"会話",gift:"プレゼント",login:"ログイン"};
@@ -415,7 +415,7 @@
     openSheet("ILLUSTRATIONS","navImages");
     const body=$("sheetBody");
     const desc=document.createElement("p");desc.className="subtext";
-    desc.textContent="使いたいイラストを選べます。追加する場合は、GitHubのindex.htmlと同じ場所にren2.jpgやren3.jpgをアップロードしてください。";body.append(desc);
+    desc.textContent="ホーム画面に表示するイラストを選択できます。";body.append(desc);
     const gallery=document.createElement("div");gallery.className="gallery";
     IMAGES.forEach(item=>{
       const ready=availableImages.has(item.id), chosen=game.imageId===item.id;
@@ -427,7 +427,7 @@
       btn.append(title,small);btn.addEventListener("click",()=>{switchImage(item.id);renderImages();toast("表示するイラストを変更しました");});gallery.append(btn);
     });body.append(gallery);
     const note=document.createElement("p");note.className="subtext";note.style.marginTop="13px";
-    note.textContent="※ タップ判定は最初のイラストに合わせています。別のポーズの画像はタップ位置の調整が必要です。";body.append(note);
+    note.textContent="※ タップ判定を調整できます。";body.append(note);
   }
   $("navImages").addEventListener("click",renderImages);
   // ── 会話履歴・解放状況 ──
