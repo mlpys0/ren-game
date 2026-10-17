@@ -88,12 +88,12 @@
       ]
     },
     "second": {
-      "file": "ren2.jpg",
+      "file": "ren2.png",
       "name": "衣装 02",
       "zones": []
     },
     "third": {
-      "file": "ren3.jpg",
+      "file": "ren3.png",
       "name": "衣装 03",
       "zones": []
     }
