@@ -88,7 +88,7 @@
       ]
     },
     "second": {
-      "file": "ren2.jpg",
+      "file": "ren2.png",
       "name": "黒スーツ",
       "zones": [
         {
@@ -190,7 +190,7 @@
       ]
     },
     "third": {
-      "file": "ren3.jpg",
+      "file": "ren3.png",
       "name": "白タキシード",
       "zones": [
         {
