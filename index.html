@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#130d13">
+  <meta name="robots" content="noindex,nofollow,noimageindex">
+  <title>REN - Private Room</title>
+  <style>
+    :root { --red:#b34458; --gold:#d1b38a; --ink:#130d13; --white:#f5edf0; }
+    * { box-sizing:border-box; }
+    body { margin:0; background:#09070b; color:var(--white); font-family:-apple-system,BlinkMacSystemFont,"Hiragino Kaku Gothic ProN","Yu Gothic",sans-serif; }
+    button { font:inherit; cursor:pointer; -webkit-tap-highlight-color:transparent; }
+    .app { width:min(100%,480px); height:100dvh; height:100svh; margin:auto; position:relative; display:flex; flex-direction:column; overflow:hidden; background:var(--ink); box-shadow:0 0 65px #000; }
+    .topbar { flex:none; padding:calc(14px + env(safe-area-inset-top)) 20px 11px; display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #ffffff12; background:linear-gradient(105deg,#26131f,#100c14); }
+    .brand { color:var(--gold); font-family:Georgia,serif; font-size:23px; letter-spacing:.24em; line-height:1; }
+    .brand small { display:block; color:#99818d; font-family:inherit; font-size:9px; letter-spacing:.3em; margin-top:6px; }
+    .time { color:#ab939b; font-size:11px; letter-spacing:.08em; }
+    .stats { flex:none; padding:13px 19px 12px; display:flex; align-items:center; gap:13px; border-bottom:1px solid #ffffff0c; background:#170f18; }
+    .level { padding:7px 10px; border:1px solid #71515d; border-radius:4px; color:#f0cfd4; font-family:Georgia,serif; font-size:12px; white-space:nowrap; }
+    .meter-wrap { flex:1; min-width:0; }
+    .meter-head { display:flex; justify-content:space-between; gap:8px; margin-bottom:7px; color:#dbc2c9; font-size:11px; }
+    .meter { height:5px; background:#402b36; border-radius:50px; overflow:hidden; }
+    .meter-fill { height:100%; width:0; background:linear-gradient(90deg,#813445,#db7b8e); border-radius:50px; transition:width .3s; }
+    .scene { flex:1; min-height:0; position:relative; isolation:isolate; overflow:hidden; background:#1a1018; }
+    .scene::before { content:""; position:absolute; inset:-35px; background:url('ren.jpg') center/cover no-repeat; filter:blur(24px) brightness(.42) saturate(.7); transform:scale(1.07); }
+    .scene::after { content:""; position:absolute; inset:0; background:linear-gradient(180deg,#140d160e 55%,#130d13a6 100%); pointer-events:none; z-index:2; }
+    .art { position:absolute; inset:0; width:100%; height:100%; z-index:1; user-select:none; touch-action:manipulation; }
+    .touch-zone { fill:transparent; cursor:pointer; }
+    .hint { opacity:0; transition:opacity .2s; pointer-events:none; }
+    .art.show-hints .hint { opacity:1; }
+    .hint circle { fill:#4d1726a9; stroke:#e4c3cb; stroke-width:2; }
+    .hint text { text-anchor:middle; fill:#fff4f6; font-size:27px; font-weight:bold; paint-order:stroke; stroke:#401e2a; stroke-width:3; }
+    .scene-caption { position:absolute; top:14px; left:18px; z-index:3; color:#f5e4e7; font-size:10px; letter-spacing:.18em; text-shadow:0 1px 8px #000; pointer-events:none; }
+    .scene-caption span { display:block; margin-top:5px; color:#e1acbb; letter-spacing:.06em; font-size:10px; }
+    .reaction { position:absolute; z-index:4; left:50%; top:60%; transform:translate(-50%,-50%); color:white; padding:8px 17px; border:1px solid #e7bbc6; border-radius:30px; background:#441b2bd9; font-size:12px; letter-spacing:.1em; opacity:0; pointer-events:none; white-space:nowrap; }
+    .reaction.pop { animation:pop .9s ease-out; }
+    @keyframes pop { 0%{opacity:0;transform:translate(-50%,-30%) scale(.9)} 18%{opacity:1;transform:translate(-50%,-50%) scale(1)} 75%{opacity:1} 100%{opacity:0;transform:translate(-50%,-85%)} }
+    .dialogue { flex:none; min-height:162px; position:relative; padding:18px 22px 16px; background:linear-gradient(135deg,#281922,#120e16 77%); border-top:1px solid #987383; box-shadow:0 -8px 28px #0d050aa3; }
+    .dialogue::before { content:""; position:absolute; top:-1px; left:20px; width:85px; height:2px; background:var(--gold); }
+    .speaker { display:flex; align-items:center; justify-content:space-between; margin-bottom:10px; }
+    .speaker strong { color:#f8e6e9; font-size:16px; font-weight:650; letter-spacing:.12em; }
+    .speaker small { color:var(--gold); font-size:10px; letter-spacing:.1em; }
+    .line { font-size:14px; line-height:1.95; min-height:58px; margin:0; overflow-wrap:anywhere; }
+    .next { display:flex; justify-content:flex-end; padding:5px 0 0; color:#b68a98; font-size:10px; letter-spacing:.15em; background:none; border:0; width:100%; }
+    .next span { font-size:16px; margin-left:6px; line-height:12px; }
+    .nav { flex:none; display:grid; grid-template-columns:repeat(4,1fr); padding:9px 10px calc(10px + env(safe-area-inset-bottom)); gap:5px; background:#0e0a11; border-top:1px solid #ffffff16; }
+    .nav button { padding:7px 0 5px; border:1px solid transparent; border-radius:7px; background:none; color:#97858e; display:flex; flex-direction:column; align-items:center; gap:4px; font-size:10px; }
+    .nav button.active { background:#331b2a; border-color:#6f354d; color:#f3dce3; }
+    .nav-icon { font-family:Georgia,serif; font-size:19px; line-height:20px; }
+    .backdrop { position:absolute; inset:0; z-index:10; background:#0009; display:none; align-items:flex-end; }
+    .backdrop.open { display:flex; }
+    .sheet { width:100%; max-height:75%; padding:24px 23px calc(25px + env(safe-area-inset-bottom)); overflow:auto; background:linear-gradient(140deg,#30202a,#150f19); border-top:1px solid #b78894; border-radius:17px 17px 0 0; box-shadow:0 -15px 50px #0009; }
+    .sheet-top { display:flex; justify-content:space-between; align-items:center; margin-bottom:18px; }
+    .sheet-top h2 { margin:0; font-family:Georgia,serif; font-weight:normal; color:var(--gold); font-size:18px; letter-spacing:.1em; }
+    .close { border:1px solid #806371; border-radius:50%; width:32px; height:32px; color:#fff; background:transparent; }
+    .sheet p { font-size:13px; color:#d9c4ce; line-height:1.85; }
+    .log-item { padding:12px 0; border-bottom:1px solid #ffffff19; font-size:13px; line-height:1.75; }
+    .log-item small { display:block; color:#bd8e9f; font-size:10px; margin-bottom:5px; }
+    .sheet-action { display:block; width:100%; padding:11px; color:#fbeaf0; background:#5f2e42; border:1px solid #93576c; border-radius:7px; margin-top:15px; }
+    @media (max-height:650px) { .topbar{padding-top:9px;padding-bottom:7px} .stats{padding-top:8px;padding-bottom:8px} .dialogue{min-height:137px;padding-top:12px;padding-bottom:10px} .line{min-height:45px;font-size:13px} .nav{padding-top:4px;padding-bottom:5px} }
+  </style>
+</head>
+<body>
+<div class="app">
+  <header class="topbar">
+    <div class="brand">REN <small>PRIVATE ROOM</small></div>
+    <div class="time" id="clock">--:--</div>
+  </header>
+
+  <div class="stats">
+    <div class="level" id="level">LV. 01</div>
+    <div class="meter-wrap">
+      <div class="meter-head"><span>♡ 親密度</span><span id="affection">0 / 100</span></div>
+      <div class="meter"><div class="meter-fill" id="meterFill"></div></div>
+    </div>
+  </div>
+
+  <main class="scene">
+    <div class="scene-caption">SHINONOME REN <span>蓮くんに触れてみて</span></div>
+    <!-- SVGなら画像を切らずに表示でき、触れる位置も画面サイズでずれません。 -->
+    <svg class="art" id="art" viewBox="0 0 1280 960" preserveAspectRatio="xMidYMid slice" aria-label="蓮のイラスト。頭、顔、肩、胸元、手をタップできます">
+      <image href="ren.jpg" width="1280" height="960" />
+      <rect class="touch-zone" data-zone="other" width="1280" height="960" />
+      <path class="touch-zone" data-zone="shoulder" d="M 170 350 L 430 300 L 505 540 L 460 755 L 185 730 Z M 865 375 L 1185 425 L 1240 735 L 925 810 L 870 570 Z" />
+      <path class="touch-zone" data-zone="uniform" d="M 470 610 L 900 605 L 1020 860 L 435 850 Z" />
+      <path class="touch-zone" data-zone="hair" d="M 370 0 L 1005 0 L 1050 250 L 970 375 L 850 405 L 510 405 L 390 325 Z" />
+      <path class="touch-zone" data-zone="face" d="M 490 360 Q 685 310 920 360 L 900 530 Q 830 645 690 655 Q 515 620 480 495 Z" />
+      <path class="touch-zone" data-zone="hand" d="M 470 730 L 680 785 L 810 785 L 900 925 L 885 960 L 585 960 L 485 845 Z" />
+      <g class="hint">
+        <g transform="translate(710 180)"><circle r="54"/><text y="10">頭</text></g>
+        <g transform="translate(710 480)"><circle r="54"/><text y="10">顔</text></g>
+        <g transform="translate(305 555)"><circle r="54"/><text y="10">肩</text></g>
+        <g transform="translate(725 705)"><circle r="54"/><text y="10">服</text></g>
+        <g transform="translate(665 868)"><circle r="54"/><text y="10">手</text></g>
+      </g>
+    </svg>
+    <div class="reaction" id="reaction">♡ +2</div>
+  </main>
+
+  <section class="dialogue" aria-live="polite">
+    <div class="speaker"><strong>東雲 蓮</strong><small id="actionName">HOME · GREETING</small></div>
+    <p class="line" id="line">……来たのか。まあ、好きにしてけよ。</p>
+    <button class="next" id="next">TAP TO TALK <span>⌄</span></button>
+  </section>
+
+  <nav class="nav" aria-label="メニュー">
+    <button id="talk" class="active"><span class="nav-icon">✧</span>会話</button>
+    <button id="log"><span class="nav-icon">☷</span>履歴</button>
+    <button id="hint"><span class="nav-icon">⌖</span>タップ位置</button>
+    <button id="menu"><span class="nav-icon">⚙</span>設定</button>
+  </nav>
+
+  <div class="backdrop" id="backdrop" role="presentation">
+    <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="sheetTitle">
+      <div class="sheet-top"><h2 id="sheetTitle">MENU</h2><button class="close" id="close" aria-label="閉じる">×</button></div>
+      <div id="sheetBody"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+  // ★ 好きなセリフに変えるのはここ！ 各場所に何個でも追加できます。
+  const lines = {
+    hair: [
+      "……おい、髪ぐしゃぐしゃにすんな。",
+      "なんだよ。撫でたいなら、先に言えって。",
+      "……そんなに触り心地いいか？"
+    ],
+    face: [
+      "近いって。……いや、離れろとは言ってねえけど。",
+      "……俺の顔、そんなに面白いかよ。",
+      "こっち見んな。……調子狂うだろ。"
+    ],
+    hand: [
+      "……手、繋ぎたいのか？",
+      "ほら。……握るなら、ちゃんと握れ。",
+      "お前の手、あったけえな。"
+    ],
+    shoulder: [
+      "……肩？ 何かついてるか？",
+      "んなに気になるなら、隣来いよ。",
+      "……別に、寄りかかってもいいけど。"
+    ],
+    uniform: [
+      "服が気になるのか？ ……変なとこ触んなよ。",
+      "似合ってる？ ……あっそ。ありがと。",
+      "……そんなにじろじろ見るなって。"
+    ],
+    other: [
+      "……ん？ どうした。",
+      "お前、さっきから落ち着きねえな。",
+      "何か言いたいことでもあんのか？"
+    ],
+    talk: [
+      "今日、何してたんだよ。……別に、気になっただけ。",
+      "暇なら、もう少しここにいろよ。",
+      "……お前といると、時間経つの早えな。",
+      "ちゃんと飯食ったか？ ……ならいい。"
+    ]
+  };
+  const specialHand = [
+    "……ほら、こっち来い。手、離すなよ。",
+    "お前が繋いできたんだからな。……最後まで責任取れよ。"
+  ];
+  const names = {hair:"頭",face:"顔",hand:"手",shoulder:"肩",uniform:"服",other:"タップ",talk:"会話"};
+  const saveKey = "ren-private-room-v1";
+  let affection = 0;
+  let history = [];
+  let previous = {};
+  try {
+    const saved = JSON.parse(localStorage.getItem(saveKey) || "{}");
+    affection = Math.max(0, Math.min(100, Number(saved.affection) || 0));
+    history = Array.isArray(saved.history) ? saved.history.slice(0,30) : [];
+  } catch (error) { /* 保存機能が使えない環境でもゲームは動かす */ }
+
+  const $ = (id) => document.getElementById(id);
+  function save() {
+    try { localStorage.setItem(saveKey, JSON.stringify({affection, history})); } catch (error) {}
+  }
+  function renderStats() {
+    $("affection").textContent = affection + " / 100";
+    $("meterFill").style.width = affection + "%";
+    $("level").textContent = "LV. " + String(Math.min(5,1+Math.floor(affection/25))).padStart(2,"0");
+  }
+  function choose(zone) {
+    const pool = zone === "hand" && affection >= 40 ? [...lines.hand, ...specialHand] : lines[zone];
+    const options = pool.filter(text => text !== previous[zone]);
+    const picked = (options.length ? options : pool)[Math.floor(Math.random() * (options.length ? options : pool).length)];
+    previous[zone] = picked;
+    return picked;
+  }
+  function speak(zone) {
+    const text = choose(zone);
+    $("line").textContent = text;
+    $("actionName").textContent = "TOUCH · " + names[zone].toUpperCase();
+    affection = Math.min(100, affection + 2);
+    history.unshift({zone:names[zone], text, time:new Date().toLocaleTimeString("ja-JP",{hour:"2-digit",minute:"2-digit"})});
+    history = history.slice(0,30);
+    renderStats();
+    save();
+    const reaction = $("reaction");
+    reaction.textContent = affection === 100 ? "♡ MAX" : "♡ +2 · " + names[zone];
+    reaction.classList.remove("pop");
+    void reaction.offsetWidth;
+    reaction.classList.add("pop");
+  }
+  $("art").addEventListener("click", (event) => {
+    const target = event.target.closest("[data-zone]");
+    if (target) speak(target.dataset.zone);
+  });
+  $("talk").addEventListener("click", () => speak("talk"));
+  $("next").addEventListener("click", () => speak("talk"));
+  $("hint").addEventListener("click", () => {
+    const on = $("art").classList.toggle("show-hints");
+    $("hint").classList.toggle("active",on);
+  });
+
+  function openSheet(title) {
+    $("sheetTitle").textContent = title;
+    $("sheetBody").replaceChildren();
+    $("backdrop").classList.add("open");
+  }
+  function addParagraph(text) {
+    const p = document.createElement("p");
+    p.textContent = text;
+    $("sheetBody").append(p);
+  }
+  $("log").addEventListener("click", () => {
+    openSheet("CONVERSATION LOG");
+    if (!history.length) addParagraph("まだ会話の記録がありません。蓮くんをタップしてみてください。");
+    history.forEach(item => {
+      const div = document.createElement("div");
+      div.className = "log-item";
+      const small = document.createElement("small");
+      small.textContent = item.time + " · " + item.zone;
+      const text = document.createElement("div");
+      text.textContent = item.text;
+      div.append(small,text);
+      $("sheetBody").append(div);
+    });
+  });
+  $("menu").addEventListener("click", () => {
+    openSheet("SETTINGS");
+    addParagraph("頭・顔・肩・服・手をタップすると、それぞれ違うセリフが出ます。「タップ位置」を押すと場所を確認できます。");
+    addParagraph("親密度は会話やタップで少しずつ上昇します。40以上で手をタップすると、特別なセリフが出ることがあります。進行状況はこのブラウザ内に保存されます。");
+    const reset = document.createElement("button");
+    reset.className = "sheet-action";
+    reset.textContent = "親密度と履歴をリセット";
+    reset.addEventListener("click", () => {
+      if (!confirm("親密度と会話履歴をリセットしますか？")) return;
+      affection = 0; history = []; previous = {};
+      renderStats(); save();
+      $("line").textContent = "……来たのか。まあ、好きにしてけよ。";
+      $("actionName").textContent = "HOME · GREETING";
+      $("backdrop").classList.remove("open");
+    });
+    $("sheetBody").append(reset);
+  });
+  $("close").addEventListener("click", () => $("backdrop").classList.remove("open"));
+  $("backdrop").addEventListener("click", (event) => {
+    if (event.target === $("backdrop")) $("backdrop").classList.remove("open");
+  });
+  function updateClock() {
+    $("clock").textContent = new Date().toLocaleTimeString("ja-JP",{hour:"2-digit",minute:"2-digit"});
+  }
+  updateClock(); setInterval(updateClock,60000); renderStats();
+  const hour = new Date().getHours();
+  if (hour >= 5 && hour < 11) $("line").textContent = "……おはよ。ちゃんと寝たか？";
+  else if (hour >= 23 || hour < 5) $("line").textContent = "……こんな時間まで起きてんのか。無理すんなよ。";
+</script>
+</body>
+</html>
