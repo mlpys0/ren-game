@@ -737,12 +737,12 @@
     movieBtn.addEventListener("click",()=>{
       switchImage(MOTION.id);
       renderImages();
-      toast("動く蓮くんをホームに設定しました");
+      toast("表示するイラストを変更しました");
     });
     gallery.append(movieBtn);
     body.append(gallery);
     const note=document.createElement("p");note.className="subtext";note.style.marginTop="13px";
-    note.textContent="※ 動画再生中は蓮くんの位置が動くため、画面全体をタップすると会話が進みます。静止画に戻すと、画像ごとの部位別タップ判定が使えます。";
+    note.textContent="※ 動画再生中は蓮の位置が動くため、画面全体をタップすると会話が進みます。静止画に戻すと、画像ごとの部位別タップ判定が使えます。";
     body.append(note);
   }
   $("navImages").addEventListener("click",renderImages);
