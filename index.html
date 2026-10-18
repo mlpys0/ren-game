@@ -245,6 +245,32 @@
     .story-progress {display:flex;justify-content:space-between;margin-top:11px;font:9px Georgia,serif;letter-spacing:.12em;color:#b99aaa;}
     @media(max-height:680px){.story-window{max-height:72%;min-height:200px;padding:12px}.story-text{min-height:65px;font-size:12px}.story-head{min-height:52px}}
     @media(prefers-reduced-motion:reduce){.story-backdrop{transform:none}}
+    /* ── ノベル画面だけを乙女ゲーム式に：背景と立ち絵を独立レイヤー化 ── */
+    .story-backdrop {filter:blur(15px) brightness(.52) saturate(.65);transform:scale(1.1);}
+    /* 1話につき一枚絵のみ：前景レイヤーなしでも画像を鮮明に表示 */
+    .story-screen.one-image .story-backdrop {filter:brightness(.86) saturate(.95);transform:scale(1.035);}
+    .story-figure {position:absolute;z-index:-1;inset:9% 0 20% 0;overflow:hidden;pointer-events:none;display:flex;align-items:flex-end;justify-content:center;}
+    .story-standing {width:100%;height:100%;display:block;object-fit:cover;object-position:center 22%;opacity:1;
+      -webkit-mask-image:radial-gradient(ellipse 88% 76% at 50% 39%,#000 54%,transparent 100%);
+      mask-image:radial-gradient(ellipse 88% 76% at 50% 39%,#000 54%,transparent 100%);
+      transition:opacity .25s ease,transform .3s ease;}
+    .story-standing.is-cutout {object-fit:contain;object-position:center bottom;
+      -webkit-mask-image:linear-gradient(180deg,#000 0%,#000 78%,transparent 100%);
+      mask-image:linear-gradient(180deg,#000 0%,#000 78%,transparent 100%);}
+    .story-standing.is-narrating {opacity:.8;}
+    .story-screen::after {background:linear-gradient(180deg,#100b134d 0%,transparent 28%,#120a17cc 90%);}
+    .story-head {z-index:2;}
+    .story-spacer {pointer-events:none;}
+    .story-window {z-index:2;min-height:220px;max-height:56%;background:linear-gradient(150deg,#2e1d29e8,#100b15f5 90%);
+      border:1px solid #b77e90a6;box-shadow:0 7px 38px #000b;backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);}
+    .story-window::before {background:#c5839a;}
+    .story-name {display:inline-block;min-width:72px;border-bottom:1px solid #c28aa087;padding-bottom:5px;}
+    .story-text {min-height:75px;}
+    .story-next {margin-top:10px;}
+    .story-tap-guide {position:absolute;right:16px;bottom:12px;z-index:1;font:10px Georgia,serif;color:#f7dfec9c;pointer-events:none;letter-spacing:.15em;}
+    @media(max-height:680px){.story-figure{top:8%;bottom:23%}.story-window{min-height:185px;max-height:65%}.story-text{min-height:55px}}
+    @media(prefers-reduced-motion:reduce){.story-standing{transition:none!important}}
+
   </style>
 </head>
 <body>
@@ -296,12 +322,14 @@
   <!-- ストーリーモード：画像の上に重ねる専用画面 -->
   <section class="story-screen" id="storyScreen" hidden role="dialog" aria-modal="true" aria-labelledby="storyTitle">
     <div class="story-backdrop" id="storyBackdrop"></div>
+    <div class="story-figure" id="storyFigure" aria-hidden="true"><img class="story-standing" id="storyStanding" alt="" src="ren.jpg"></div>
     <header class="story-head">
       <button class="story-close" id="storyClose" type="button" aria-label="物語を閉じる">‹ <span>戻る</span></button>
       <div class="story-heading"><small id="storyCategory">MAIN STORY</small><strong id="storyTitle">STORY</strong></div>
       <button class="story-restart" id="storyRestart" type="button">最初から</button>
     </header>
     <div class="story-spacer"></div>
+    <div class="story-tap-guide">TAP TO READ</div>
     <div class="story-window" id="storyWindow">
       <div class="story-kicker" id="storyKicker">EPISODE 01</div>
       <div class="story-name" id="storyName">蓮</div>
@@ -776,9 +804,12 @@
     });body.append(reset);
   }
   $("navSettings").addEventListener("click",renderSettings);
-  // ── ストーリーモード：本編／恋愛／短編 ──
-  const STORY_CATEGORIES={main:{name:"本編",eng:"MAIN STORY"},romance:{name:"恋愛",eng:"ROMANCE"},short:{name:"短編",eng:"SHORT STORIES"}};
-  const ALL_STORIES=Array.isArray(window.REN_STORIES)?window.REN_STORIES:[];
+  // ── ストーリーモード：本編／学パロ／短編 ──
+  const STORY_CATEGORIES={main:{name:"本編",eng:"MAIN STORY"},school:{name:"学パロ",eng:"SCHOOL AU"},short:{name:"短編",eng:"SHORT STORIES"}};
+  // 以前の stories.js の category: "romance" も学パロとして表示。
+  // id は保持するので、既読・途中保存・前話クリア条件は引き継げます。
+  const ALL_STORIES=(Array.isArray(window.REN_STORIES)?window.REN_STORIES:[])
+    .map(story=>story && story.category==="romance"?{...story,category:"school",episode:typeof story.episode==="string"?story.episode.replace(/^ROMANCE(?=\s|$)/i,"SCHOOL"):story.episode}:story);
   let storyCategory="main",currentStory=null,currentSession=null,storyTimer=null,storyFullText="",storyTextDone=true;
   function storyStatus(story){
     if(level()<(story.unlockLevel||1))return `LV.${story.unlockLevel}で解放`;
@@ -791,7 +822,7 @@
     openSheet("STORY","navStory");
     const body=$("sheetBody");
     const lead=document.createElement("p");lead.className="subtext";
-    lead.textContent="本編・恋愛・短編を選んで読み進めます。途中の続きと読了状況は自動保存されます。";
+    lead.textContent="本編・学パロ・短編を選んで読み進めます。途中の続きと読了状況は自動保存されます。";
     body.append(lead);
     const tabs=document.createElement("div");tabs.className="story-tabs";
     Object.entries(STORY_CATEGORIES).forEach(([id,c])=>{
@@ -822,9 +853,11 @@
       button.addEventListener("click",()=>openStory(story.id));row.append(info,button);
       card.append(head,title,desc,row);body.append(card);
     });
-    const notice=document.createElement("p");notice.className="subtext";
-    notice.style.marginTop="15px";notice.textContent="※ 現在の物語本文はすべて仮のサンプルです。stories.js の文章を編集して差し替えられます。";
-    body.append(notice);
+    if(ALL_STORIES.some(item=>item.sample)) {
+      const notice=document.createElement("p");notice.className="subtext";
+      notice.style.marginTop="15px";notice.textContent="※ サンプルのお話が含まれています。stories.js の文章を編集して差し替えられます。";
+      body.append(notice);
+    }
   }
   $("navStory").addEventListener("click",()=>renderStoryLibrary());
   function stopStoryTyping(){if(storyTimer!==null){clearInterval(storyTimer);storyTimer=null;}}
@@ -857,16 +890,37 @@
     $("storyScreen").hidden=false;
     $("storyCategory").textContent=STORY_CATEGORIES[story.category]?.eng||"STORY";
     $("storyTitle").textContent=story.title;
-    const background=typeof story.background==="string" && /^[\w-]+\.(jpg|jpeg|png|webp)$/i.test(story.background)?story.background:"ren.jpg";
-    $("storyBackdrop").style.backgroundImage=`linear-gradient(180deg,rgba(10,6,13,.53),rgba(9,5,11,.25) 36%,rgba(8,5,11,.82) 83%),url("${background}")`;
+    renderStoryVisuals();
     $("storyKicker").textContent=story.episode||"STORY";
     homeVideo.pause(); // ストーリー読書中は動画再生を停止
     storeStorySession();renderStoryScene();
+  }
+  // 画像の切り替えは stories.js で指定。省略時は既存の ren.jpg を表示します。
+  function allowedStoryImage(file){
+    return typeof file==="string" && /^(?:[A-Za-z0-9_-]+\/)*[A-Za-z0-9_-]+\.(?:png|jpg|jpeg|webp)$/i.test(file);
+  }
+  function renderStoryVisuals(){
+    if(!currentStory)return;
+    const scene=currentSession?.steps?.[currentSession.index] || {};
+    const background=allowedStoryImage(scene.background)?scene.background:
+      (allowedStoryImage(currentStory.background)?currentStory.background:"ren.jpg");
+    $("storyBackdrop").style.backgroundImage=`linear-gradient(180deg,#120a1977,#11091055 42%,#09060ec9 100%),url("${background}")`;
+    const chosen=Object.prototype.hasOwnProperty.call(scene,"sprite")?scene.sprite:
+      (Object.prototype.hasOwnProperty.call(currentStory,"sprite")?currentStory.sprite:"ren.jpg");
+    const figure=$("storyFigure"),sprite=$("storyStanding");
+    $("storyScreen").classList.toggle("one-image",chosen===null);
+    if(chosen===null){figure.hidden=true;return;}
+    const file=allowedStoryImage(chosen)?chosen:"ren.jpg";
+    figure.hidden=false;
+    sprite.classList.toggle("is-cutout",/\.(png|webp)$/i.test(file));
+    sprite.classList.toggle("is-narrating",scene.name==="地の文"||!scene.name);
+    if(sprite.getAttribute("src")!==file){sprite.setAttribute("src",file);}
   }
   function renderStoryScene(){
     if(!currentSession||!currentStory)return;
     const scene=currentSession.steps[currentSession.index];
     if(!scene){completeStory();return;}
+    renderStoryVisuals();
     $("storyWindow").scrollTop=0;
     $("storyProgress").textContent=`${String(currentSession.index+1).padStart(2,"0")} / ${String(currentSession.steps.length).padStart(2,"0")}`;
     $("storyChoices").replaceChildren();
@@ -934,6 +988,12 @@
     if(event.target.closest("button"))return;
     if(!$("storyChoices").hidden)return;
     nextStoryScene();
+  });
+  $("storyStanding").addEventListener("error",()=>{
+    if($("storyStanding").getAttribute("src")!=="ren.jpg"){
+      $("storyStanding").setAttribute("src","ren.jpg");
+      $("storyStanding").classList.remove("is-cutout");
+    }else{$("storyFigure").hidden=true;}
   });
   // ── ログインボーナス（日付が変わったら再度受取可能） ──
   function loginAvailable(){return game.lastLogin!==today();}
