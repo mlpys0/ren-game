@@ -822,7 +822,7 @@
     openSheet("STORY","navStory");
     const body=$("sheetBody");
     const lead=document.createElement("p");lead.className="subtext";
-    lead.textContent="本編・学パロ・短編を選んで読み進めます。途中の続きと読了状況は自動保存されます。";
+    lead.textContent="本編・学パロ・短編を選択できます。途中の続きと読了状況は自動保存されます。";
     body.append(lead);
     const tabs=document.createElement("div");tabs.className="story-tabs";
     Object.entries(STORY_CATEGORIES).forEach(([id,c])=>{
