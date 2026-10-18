@@ -6,21 +6,6 @@
   <meta name="theme-color" content="#150d13">
   <meta name="robots" content="noindex,nofollow,noimageindex">
   <title>四人の飼育。逃げ場なし｜REN PRIVATE ROOM</title>
-  <meta property="og:type" content="website">
-<meta property="og:title" content="四人の飼育。逃げ場なし｜REN PRIVATE ROOM">
-<meta property="og:description" content="東雲蓮と触れ合えるプライベートキャラクターゲーム。タップ反応、親密度、プレゼント機能つき。">
-<meta property="og:url" content="https://mlpys0.github.io/ren-game/">
-<meta property="og:image" content="https://mlpys0.github.io/ren-game/ogp.png">
-<meta property="og:image:type" content="image/png">
-<meta property="og:image:width" content="1200">
-<meta property="og:image:height" content="630">
-<meta property="og:site_name" content="REN PRIVATE ROOM">
-<meta property="og:locale" content="ja_JP">
-
-<meta name="twitter:card" content="summary_large_image">
-<meta name="twitter:title" content="四人の飼育。逃げ場なし｜REN PRIVATE ROOM">
-<meta name="twitter:description" content="東雲蓮と触れ合えるプライベートキャラクターゲーム。">
-<meta name="twitter:image" content="https://mlpys0.github.io/ren-game/ogp.png">
   <style>
     :root {
       --accent:#b94a60; --accent-bright:#f09aab; --accent-dark:#562337;
@@ -54,6 +39,7 @@
     .scene { position:relative; flex:1; min-height:0; isolation:isolate; overflow:hidden; background:#22141b; --photo:url('ren.jpg'); }
     .scene::before { content:""; position:absolute; inset:-24px; background-image:var(--photo); background-position:center; background-size:cover; filter:blur(24px) brightness(.43); transform:scale(1.12); }
     .scene::after { content:""; position:absolute; inset:0; pointer-events:none; z-index:2; background:linear-gradient(180deg,#08040a1a 45%,#130912a0 100%); }
+    .character-video { position:absolute; inset:0; z-index:1; width:100%; height:100%; object-fit:cover; pointer-events:none; background:#1a1018; }
     .art { position:absolute; inset:0; height:100%; width:100%; z-index:1; user-select:none; -webkit-user-select:none; touch-action:manipulation; }
     .touch-zone { fill:transparent; cursor:pointer; }
     .hint { pointer-events:none; opacity:0; transition:opacity .2s; }
@@ -103,6 +89,11 @@
     .gallery-option.chosen { border:2px solid var(--gold); }
     .gallery-option:disabled { opacity:.5; }
     .gallery-option img { width:100%; height:108px; object-fit:cover; display:block; }
+    .movie-cover { position:relative; }
+    .movie-cover span { position:absolute; right:7px; top:7px; background:#24151ddd; border:1px solid #d5b68e91; color:#f9e3c1; border-radius:3px; padding:3px 6px; font:10px Georgia,serif; letter-spacing:.07em; }
+    .gallery-option.movie-locked img { filter:grayscale(.7) brightness(.48); }
+    .gallery-option.movie-locked { opacity:1; }
+
     .placeholder { height:108px; display:flex; align-items:center; justify-content:center; background:repeating-linear-gradient(35deg,#241924,#241924 9px,#30222c 9px,#30222c 18px); font-size:11px; color:#bd9ea9; text-align:center; padding:10px; }
     .gallery-option b { display:block; font-size:12px; margin:8px 9px 2px; }
     .gallery-option small { display:block; font-size:10px; color:#c9aebc; margin:0 9px 9px; }
@@ -214,6 +205,7 @@
   </section>
   <main class="scene" id="scene">
     <div class="scene-label">SHINONOME REN<span>好きな場所に触れてみて</span></div>
+    <video class="character-video" id="characterVideo" muted playsinline webkit-playsinline autoplay loop preload="none" poster="ren-motion-poster.jpg" hidden aria-hidden="true"></video>
     <svg class="art" id="art" viewBox="0 0 1280 960" preserveAspectRatio="xMidYMid slice" aria-label="蓮のイラスト。頭、目、頬、口、肩、服、手をタップできます">
       <image id="characterImage" href="ren.jpg" width="1280" height="960"></image>
       <g id="touchAreas">
@@ -309,6 +301,9 @@
     {id:"second",file:"ren2.png",name:"衣装 02",note:"ren2.png を追加"},
     {id:"third",file:"ren3.png",name:"衣装 03",note:"ren3.png を追加"}
   ];
+  // ★ 動くホーム画面：親密度LV.5で解放。数字だけ変更すると解放レベルを調整できます。
+  const MOTION_UNLOCK_LEVEL=5;
+  const MOTION={id:"motion",file:"ren-motion.mp4",poster:"ren-motion-poster.jpg",name:"動く蓮くん"};
   // ── 画像別のタップ判定 ──
   // ゲームをGitHubで公開する際、tap-zones.jsonも一緒にアップロードしてください。
   // 画像の座標は「元画像の左上を0%、右下を100%」とする割合です。
@@ -365,10 +360,10 @@
     const fallback=document.createElementNS(SVG_NS,"rect");
     fallback.setAttribute("x",0);fallback.setAttribute("y",0);
     fallback.setAttribute("width",width);fallback.setAttribute("height",height);
-    fallback.setAttribute("class","touch-zone");fallback.dataset.zone="other";
+    fallback.setAttribute("class","touch-zone");fallback.dataset.zone=game.imageId===MOTION.id?"talk":"other";
     layer.append(fallback);
     const record=touchSettings.images[game.imageId];
-    const zones=record && Array.isArray(record.zones)?record.zones:game.imageId==="default"?DEFAULT_TOUCH_ZONES:[];
+    const zones=game.imageId===MOTION.id?[]:(record && Array.isArray(record.zones)?record.zones:game.imageId==="default"?DEFAULT_TOUCH_ZONES:[]);
     [...zones].sort((a,b)=>ZONE_ORDER[a.zone]-ZONE_ORDER[b.zone]).forEach(item=>{
       const x=item.x/100*width,y=item.y/100*height,w=item.w/100*width,h=item.h/100*height;
       const shape=document.createElementNS(SVG_NS,item.shape);
@@ -424,6 +419,7 @@
     return original;
   }
   let game = loadSave();
+  if(game.imageId===MOTION.id && level()<MOTION_UNLOCK_LEVEL){game.imageId="default";}
   let availableImages = new Set(["default"]);
   let previous = {};
   let typeTimer = null, fullLine = "", toastTimer = null, pressTimer = null, downPoint = null, suppressClickUntil = 0;
@@ -443,7 +439,11 @@
   }
   function addXp(amount) {
     const before=level(); game.xp+=amount; const after=level(); renderStats(); save();
-    if(after>before) {toast(`親密度 LV.${after} にアップ！ 新しいセリフが解放されました`);}
+    if(after>before) {
+      if(before<MOTION_UNLOCK_LEVEL && after>=MOTION_UNLOCK_LEVEL){
+        toast(`LV.${after}達成！ 「動く蓮くん」が画像メニューに解放されました`);
+      }else{toast(`親密度 LV.${after} にアップ！ 新しいセリフが解放されました`);}
+    }
   }
   function pick(list,key) {
     if(!list || !list.length)return "……ん？";
@@ -557,696 +557,85 @@
       img.src=item.file;
     });
   }
+  // 動画再生：iPhone Safari対応のため無音・インライン再生。
+  const homeVideo=$("characterVideo");
+  homeVideo.addEventListener("error",()=>{
+    if(game.imageId!==MOTION.id)return;
+    switchImage("default");
+    toast("動画を読み込めませんでした。ren-motion.mp4 をGitHubに追加してください。");
+  });
+  function playHomeVideo(){
+    if(game.imageId!==MOTION.id || !$("intro").hidden || document.hidden)return;
+    const started=homeVideo.play();
+    if(started && typeof started.catch==="function")started.catch(()=>{});
+  }
   function switchImage(id){
-    const image=IMAGES.find(item=>item.id===id)||IMAGES[0];
-    if(!availableImages.has(image.id)&&image.id!=="default")return;
-    game.imageId=image.id;$("characterImage").setAttribute("href",image.file);
-    $("scene").style.setProperty("--photo",`url('${image.file}')`);
-    refreshCharacterImage(image.file);save();
-  }
-  function renderImages(){
-    openSheet("ILLUSTRATIONS","navImages");
-    const body=$("sheetBody");
-    const desc=document.createElement("p");desc.className="subtext";
-    desc.textContent="ホーム画面に表示するイラストを選択できます。";body.append(desc);
-    const gallery=document.createElement("div");gallery.className="gallery";
-    IMAGES.forEach(item=>{
-      const ready=availableImages.has(item.id), chosen=game.imageId===item.id;
-      const btn=document.createElement("button");btn.type="button";btn.className="gallery-option"+(chosen?" chosen":"");btn.disabled=!ready;
-      if(ready){const img=document.createElement("img");img.src=item.file;img.alt=item.name;btn.append(img);}
-      else{const placeholder=document.createElement("div");placeholder.className="placeholder";placeholder.textContent="画像未登録";btn.append(placeholder);}
-      const title=document.createElement("b");title.textContent=item.name+(chosen?" ✓":"");
-      const small=document.createElement("small");small.textContent=ready?(chosen?"選択中":"タップで切替"):item.note;
-      btn.append(title,small);btn.addEventListener("click",()=>{switchImage(item.id);renderImages();toast("表示するイラストを変更しました");});gallery.append(btn);
-    });body.append(gallery);
-    const note=document.createElement("p");note.className="subtext";note.style.marginTop="13px";
-    note.textContent="※ タップ判定は制作者がPC用エディターで画像ごとに設定しています。";body.append(note);
-  }
-  $("navImages").addEventListener("click",renderImages);
-  // ── 会話履歴・解放状況 ──
-  function renderRecords(){
-    openSheet("RECORDS","navLog");const body=$("sheetBody");
-    const title=document.createElement("div");title.className="smallheading";title.textContent="解放セリフ";body.append(title);
-    const clear=UNLOCK.filter(item=>level()>=item.level);
-    const info=document.createElement("p");info.className="subtext";info.textContent=`解放済み ${clear.length} / ${UNLOCK.length} 種類。親密度を上げると、触れたときのセリフが増えます。`;body.append(info);
-    UNLOCK.forEach(item=>{
-      const row=document.createElement("div");row.className="log-item";
-      const small=document.createElement("small");small.textContent=`LV.${item.level} · ${NAMES[item.zone]}`;
-      const text=document.createElement("div");text.textContent=level()>=item.level?item.text:"？？？（未解放）";
-      row.append(small,text);body.append(row);
-    });
-    const heading=document.createElement("div");heading.className="smallheading";heading.textContent="最近の会話（最大40件）";body.append(heading);
-    if(!game.history.length){const p=document.createElement("p");p.className="subtext";p.textContent="まだ会話履歴がありません。";body.append(p);}
-    game.history.forEach(item=>{
-      const row=document.createElement("div");row.className="log-item";
-      const small=document.createElement("small");small.textContent=(item.time||"")+" · "+(item.zone||"会話");
-      const txt=document.createElement("div");txt.textContent=item.text||"";row.append(small,txt);body.append(row);
-    });
-  }
-  $("navLog").addEventListener("click",renderRecords);
-  // ── 設定（テーマ・文字送り・エフェクト・タップ位置） ──
-  function syncSettings(){
-    document.documentElement.dataset.theme=game.theme;
-    $("art").classList.toggle("show-hints",!!game.hints);
-    save();
-  }
-  function settingToggle(parent,title,key){
-    const row=document.createElement("label");row.className="setting-row";
-    const text=document.createElement("span");text.textContent=title;
-    const input=document.createElement("input");input.type="checkbox";input.checked=!!game[key];
-    input.addEventListener("change",()=>{game[key]=input.checked;syncSettings();});
-    row.append(text,input);parent.append(row);
-  }
-  function renderSettings(){
-    openSheet("SETTINGS","navSettings");const body=$("sheetBody");
-    const p=document.createElement("p");p.className="subtext";p.textContent="ゲーム画面の表示を変更できます。設定と進行状況はこのブラウザに保存されます。";body.append(p);
-    const row=document.createElement("label");row.className="setting-row";
-    const lab=document.createElement("span");lab.textContent="UIカラー";
-    const select=document.createElement("select");
-    [["wine","深紅"],["ash","灰"],["gold","金"]].forEach(([v,label])=>{
-      const option=document.createElement("option");option.value=v;option.textContent=label;select.append(option);
-    });select.value=game.theme;
-    select.addEventListener("change",()=>{game.theme=select.value;syncSettings();});
-    row.append(lab,select);body.append(row);
-    settingToggle(body,"セリフの文字送り", "typing");
-    settingToggle(body,"タップエフェクト", "effects");
-    settingToggle(body,"タップ位置を表示", "hints");
-    const heading=document.createElement("div");heading.className="smallheading";heading.textContent="セーブデータ";body.append(heading);
-    const note=document.createElement("p");note.className="subtext";note.textContent="自動保存です。SafariとChromeなど別のブラウザ間ではデータは共有されません。ブラウザのサイトデータを削除すると進行状況も消える場合があります。";body.append(note);
-    const reset=document.createElement("button");reset.type="button";reset.className="action secondary wide";reset.textContent="進行状況をすべて初期化";
-    reset.addEventListener("click",()=>{
-      if(!confirm("親密度・コイン・ログボ・会話履歴・設定をすべて初期化します。よろしいですか？"))return;
-      game=fresh();previous={};save();syncSettings();renderStats();switchImage("default");say("talk","……来たのか。まあ、好きにしてけよ。","HOME · GREETING");
-      closeSheet();toast("セーブデータを初期化しました");
-    });body.append(reset);
-  }
-  $("navSettings").addEventListener("click",renderSettings);
-  // ── ログインボーナス（日付が変わったら再度受取可能） ──
-  function loginAvailable(){return game.lastLogin!==today();}
-  function showLogin(){if(loginAvailable()){$("loginModal").hidden=false;}else toast("今日のログインボーナスは受け取り済みです");}
-  $("dailyBtn").addEventListener("click",showLogin);
-  $("claimLogin").addEventListener("click",()=>{
-    if(!loginAvailable()){$("loginModal").hidden=true;return;}
-    game.lastLogin=today();game.coins+=50;
-    const greeting="……今日も来たんだな。……ありがと。";
-    say("login",greeting,"DAILY · LOGIN");addXp(12);save();renderStats();
-    $("loginModal").hidden=true;toast("ログインボーナス ◈ +50 ／ ♡ +12");
-  });
-  $("closeLogin").addEventListener("click",()=>{$("loginModal").hidden=true;});
-  // 起動演出が終わったら、従来どおりログボや時間帯の挨拶を表示。
-  let gameStarting=false;
-  $("start").addEventListener("click",()=>{
-    if(gameStarting)return;
-    gameStarting=true;
-    $("start").disabled=true;
-    $("intro").classList.add("is-leaving");
-    const reducedMotion=window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    window.setTimeout(()=>{
-      $("intro").hidden=true;
-      if(loginAvailable())showLogin();
-      else {
-        const hour=new Date().getHours();
-        if(hour>=5&&hour<11)drawLine("……おはよ。ちゃんと寝たか？");
-        else if(hour>=23||hour<5)drawLine("……こんな時間まで起きてんのか。無理すんなよ。");
+    // 動画は親密度が条件に届いたプレイヤーだけ選択できます。
+    if(id===MOTION.id){
+      if(level()<MOTION_UNLOCK_LEVEL)return;
+      game.imageId=MOTION.id;
+      ++imageRenderToken; // 直前の画像読込イベントを無効化
+      imageSize={width:640,height:480};
+      $("characterImage").style.visibility="hidden";
+      $("scene").style.setProperty("--photo",`url('${MOTION.poster}')`);
+      homeVideo.hidden=false;
+      if(!homeVideo.getAttribute("src")){
+        homeVideo.src=MOTION.file;
+        homeVideo.load();
       }
-    },reducedMotion?0:700);
-  });
-  function updateClock(){ $("clock").textContent=new Date().toLocaleTimeString("ja-JP",{hour:"2-digit",minute:"2-digit"}); renderStats(); }
-  updateClock();setInterval(updateClock,60000);
-  (async function initializeGame(){
-    await loadTouchSettings();
-    syncSettings();switchImage(game.imageId);loadImageOptions();
-  })();
-</script>
-</body>
-</html><!DOCTYPE html>
-<html lang="ja">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <meta name="theme-color" content="#150d13">
-  <meta name="robots" content="noindex,nofollow,noimageindex">
-  <title>四人の飼育。逃げ場なし｜REN PRIVATE ROOM</title>
-  <style>
-    :root {
-      --accent:#b94a60; --accent-bright:#f09aab; --accent-dark:#562337;
-      --gold:#d5b68e; --ink:#100b13; --paper:#fff1f3; --muted:#bea9b4;
-    }
-    :root[data-theme="ash"] { --accent:#818595; --accent-bright:#d0cfdd; --accent-dark:#393b49; --gold:#bbc0ce; }
-    :root[data-theme="gold"] { --accent:#aa8064; --accent-bright:#f1ce9e; --accent-dark:#51352c; --gold:#eed5a2; }
-    * { box-sizing:border-box; }
-    html,body { height:100%; }
-    body { margin:0; background:#09070b; color:var(--paper); font-family:"Hiragino Mincho ProN","Yu Mincho","Noto Serif JP",serif; }
-    button,select { font:inherit; }
-    button { color:inherit; cursor:pointer; -webkit-tap-highlight-color:transparent; }
-    button:focus-visible,select:focus-visible,input:focus-visible { outline:2px solid var(--gold); outline-offset:3px; }
-    [hidden] { display:none!important; }
-    .app { width:min(100%,480px); height:100vh; height:100dvh; margin:auto; display:flex; flex-direction:column; position:relative; overflow:hidden; background:var(--ink); box-shadow:0 0 70px #000; isolation:isolate; }
-    .top { flex:none; display:flex; justify-content:space-between; align-items:center; gap:12px; padding:calc(12px + env(safe-area-inset-top)) 18px 10px; background:linear-gradient(130deg,#2b1722,#100c14); border-bottom:1px solid #ffffff1c; }
-    .brand { font:22px/1 Georgia,serif; letter-spacing:.23em; color:var(--gold); white-space:nowrap; }
-    .brand small { display:block; margin-top:5px; font:8px/1.4 "Hiragino Mincho ProN","Yu Mincho","Noto Serif JP",serif; letter-spacing:.19em; color:#bd9faa; }
-    .top-right { display:flex; align-items:center; gap:10px; }
-    .coin { border:1px solid #8a6a59a8; background:#281c24; border-radius:6px; padding:5px 9px; font-size:12px; color:#efce9c; white-space:nowrap; }
-    .clock { color:#af9ba3; font-size:11px; font-variant-numeric:tabular-nums; }
-    .stats { flex:none; display:flex; align-items:center; gap:12px; padding:10px 16px; background:#1c111b; border-bottom:1px solid #ffffff12; }
-    .lv { font:13px Georgia,serif; letter-spacing:.08em; padding:8px 10px; border:1px solid var(--accent); border-radius:4px; color:#ffe8ed; white-space:nowrap; }
-    .xp-body { flex:1; min-width:0; }
-    .xp-label { display:flex; justify-content:space-between; gap:5px; font-size:10px; color:#e9cdd6; margin-bottom:6px; }
-    .xp-label span:last-child { color:#bb9fac; font-variant-numeric:tabular-nums; }
-    .track { height:6px; background:#432936; border-radius:10px; overflow:hidden; }
-    .fill { height:100%; width:0; background:linear-gradient(90deg,var(--accent-dark),var(--accent-bright)); transition:width .35s; }
-    .daily { font-size:10px; padding:8px 9px; background:#46303d; border:1px solid #9d7184; border-radius:5px; white-space:nowrap; }
-    .daily.claimed { opacity:.55; }
-    .scene { position:relative; flex:1; min-height:0; isolation:isolate; overflow:hidden; background:#22141b; --photo:url('ren.jpg'); }
-    .scene::before { content:""; position:absolute; inset:-24px; background-image:var(--photo); background-position:center; background-size:cover; filter:blur(24px) brightness(.43); transform:scale(1.12); }
-    .scene::after { content:""; position:absolute; inset:0; pointer-events:none; z-index:2; background:linear-gradient(180deg,#08040a1a 45%,#130912a0 100%); }
-    .art { position:absolute; inset:0; height:100%; width:100%; z-index:1; user-select:none; -webkit-user-select:none; touch-action:manipulation; }
-    .touch-zone { fill:transparent; cursor:pointer; }
-    .hint { pointer-events:none; opacity:0; transition:opacity .2s; }
-    .art.show-hints .hint { opacity:1; }
-    .hint rect,.hint ellipse { fill:#47162665; stroke:#f0d8d9; stroke-width:2; stroke-dasharray:8 5; }
-    .hint text { filter:drop-shadow(0 1px 3px #000); }
-    .hint text { fill:white; font-weight:700; font-size:25px; text-anchor:middle; stroke:#421e2e; paint-order:stroke; stroke-width:3; }
-    .scene-label { position:absolute; z-index:3; top:15px; left:17px; pointer-events:none; text-shadow:0 1px 9px #000; font:10px Georgia,serif; letter-spacing:.22em; }
-    .scene-label span { display:block; font:10px "Hiragino Mincho ProN","Yu Mincho","Noto Serif JP",serif; letter-spacing:.05em; margin-top:6px; color:#efced5; }
-    .scene-help { position:absolute; z-index:3; bottom:12px; right:12px; padding:5px 8px; border:1px solid #e2c3ce5a; border-radius:3px; font-size:10px; color:#f4e1e7; background:#170c14a0; pointer-events:none; }
-    .ripple { position:absolute; z-index:4; pointer-events:none; width:14px; height:14px; border:1.5px solid #fff7ee; border-radius:50%; transform:translate(-50%,-50%); box-shadow:0 0 12px var(--accent-bright); animation:ripple .65s ease-out forwards; }
-    .ripple::after { content:'✧'; position:absolute; top:-18px; left:22px; font:18px Georgia,serif; color:var(--gold); animation:twinkle .65s ease-out forwards; }
-    @keyframes ripple { 0% { width:14px;height:14px;opacity:1 } 100% { width:100px;height:100px;opacity:0 } }
-    @keyframes twinkle { to { transform:translateY(-22px) rotate(25deg);opacity:0 } }
-    .float { position:absolute; z-index:5; pointer-events:none; padding:6px 12px; transform:translate(-50%,-50%); border-radius:20px; background:#381625e3; border:1px solid #ecbdce; font-size:11px; white-space:nowrap; animation:floatUp 1.1s ease-out forwards; }
-    @keyframes floatUp { 0% { opacity:0;transform:translate(-50%,-15%) } 18% { opacity:1;transform:translate(-50%,-50%) } 75% { opacity:1 } 100% { opacity:0;transform:translate(-50%,-105%) } }
-    .dialogue { flex:none; min-height:158px; position:relative; padding:14px 20px 12px; border-top:1px solid #9e7787; background:linear-gradient(120deg,#30202b,#130f19 80%); box-shadow:0 -7px 20px #100510aa; }
-    .dialogue::before { content:""; position:absolute; left:18px; top:-1px; width:82px; height:2px; background:var(--gold); }
-    .speaker { display:flex; justify-content:space-between; align-items:center; gap:8px; margin-bottom:8px; }
-    .speaker strong { font-size:16px; letter-spacing:.1em; }
-    .speaker small { font:9px Georgia,serif; color:var(--gold); letter-spacing:.1em; text-align:right; }
-    .line { margin:0; min-height:69px; font-size:14px; line-height:1.85; overflow-wrap:anywhere; white-space:pre-wrap; }
-    .next { float:right; border:0; background:none; font:10px Georgia,serif; letter-spacing:.17em; color:#d4a0b0; padding:0 0 3px; }
-    .nav { flex:none; display:grid; grid-template-columns:repeat(5,minmax(0,1fr)); gap:3px; padding:8px 8px calc(9px + env(safe-area-inset-bottom)); background:#0d0a10; border-top:1px solid #ffffff1d; }
-    .nav button { min-width:0; padding:5px 0 4px; display:flex; align-items:center; flex-direction:column; gap:3px; border:1px solid transparent; border-radius:6px; background:none; color:#a595a1; font-size:10px; }
-    .nav button.active { background:#35202d; border-color:#844459; color:#ffe7ec; }
-    .nav-icon { font:19px/20px Georgia,serif; }
-    .backdrop { position:absolute; inset:0; z-index:20; background:#000a; display:flex; align-items:flex-end; }
-    .sheet { width:100%; max-height:82%; min-height:25%; overflow:auto; padding:21px 20px calc(21px + env(safe-area-inset-bottom)); border-top:1px solid var(--gold); border-radius:16px 16px 0 0; box-shadow:0 -14px 35px #000b; background:linear-gradient(140deg,#34222e,#18101c 82%); }
-    .sheet-head { display:flex; justify-content:space-between; align-items:center; gap:12px; margin-bottom:13px; }
-    .sheet-head h2 { margin:0; font:19px Georgia,serif; letter-spacing:.08em; color:var(--gold); }
-    .close { width:33px; height:33px; border:1px solid #8e6c79; background:#261824; border-radius:50%; font-size:20px; }
-    .subtext { font-size:12px; line-height:1.8; color:#d4bec9; margin:0 0 14px; }
-    .card { border:1px solid #75505e; border-radius:9px; padding:14px; margin:10px 0; background:#221620bb; }
-    .card h3 { font-size:14px; margin:0 0 6px; font-weight:600; color:#fff0f3; }
-    .card p { font-size:12px; line-height:1.7; margin:5px 0 9px; color:#d7bfca; }
-    .card small { color:#caa9b8; font-size:11px; }
-    .row { display:flex; align-items:center; justify-content:space-between; gap:10px; }
-    .action { border:1px solid #ac7085; border-radius:6px; background:linear-gradient(120deg,#80394d,#592639); padding:10px 12px; color:#fff5f7; font-size:12px; }
-    .action.secondary { border-color:#886d76; background:#30212b; }
-    .action:disabled { opacity:.42; cursor:not-allowed; }
-    .action.wide { width:100%; margin-top:10px; }
-    .pill { border:1px solid #aa8694; color:#f3d1dd; padding:4px 8px; border-radius:30px; font-size:10px; white-space:nowrap; }
-    .muted { color:#b7a0ac; font-size:11px; }
-    .gallery { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:11px; }
-    .gallery-option { display:block; border:1px solid #76515f; border-radius:8px; overflow:hidden; background:#1c131b; text-align:left; padding:0; }
-    .gallery-option.chosen { border:2px solid var(--gold); }
-    .gallery-option:disabled { opacity:.5; }
-    .gallery-option img { width:100%; height:108px; object-fit:cover; display:block; }
-    .placeholder { height:108px; display:flex; align-items:center; justify-content:center; background:repeating-linear-gradient(35deg,#241924,#241924 9px,#30222c 9px,#30222c 18px); font-size:11px; color:#bd9ea9; text-align:center; padding:10px; }
-    .gallery-option b { display:block; font-size:12px; margin:8px 9px 2px; }
-    .gallery-option small { display:block; font-size:10px; color:#c9aebc; margin:0 9px 9px; }
-    .log-item { padding:11px 0; border-bottom:1px solid #ffffff1a; line-height:1.75; font-size:12px; }
-    .log-item small { display:block; font-size:10px; color:#c596ab; margin-bottom:3px; }
-    .setting-row { display:flex; align-items:center; justify-content:space-between; gap:15px; padding:12px 0; border-bottom:1px solid #ffffff17; font-size:13px; }
-    .setting-row select { max-width:150px; background:#342231; color:#fff; border:1px solid #95717f; border-radius:5px; padding:8px; }
-    .setting-row input[type=checkbox] { width:19px; height:19px; accent-color:var(--accent); }
-    .smallheading { margin:18px 0 8px; font-size:12px; color:var(--gold); letter-spacing:.08em; }
-    .intro { position:absolute; z-index:40; inset:0; display:flex; justify-content:center; align-items:center; flex-direction:column; padding:28px; background:linear-gradient(#0e0814b8,#150913e8),url('ren.jpg') center/cover; text-align:center; }
-    .intro::before { content:""; position:absolute; inset:18px; border:1px solid #b8a0806b; pointer-events:none; }
-    .intro::after { content:""; position:absolute; inset:25px; border:1px solid #b8a08035; pointer-events:none; }
-    .intro-content { position:relative; z-index:1; max-width:330px; }
-    .intro-eyebrow { font:11px Georgia,serif; letter-spacing:.32em; color:#eed6b9; margin:0 0 35px; }
-    .intro h1 { font-size:clamp(22px,7vw,32px); letter-spacing:.13em; line-height:1.6; font-weight:500; margin:0 0 16px; text-shadow:0 2px 12px #000; }
-    .intro-divider { height:1px; width:100px; margin:19px auto; background:var(--gold); }
-    .intro-title { font:18px Georgia,serif; letter-spacing:.23em; margin:0 0 2px; color:#f3cfd8; }
-    .intro-sub { font-size:11px; letter-spacing:.23em; color:#c9aab7; }
-    .start { background:#522338df; border:1px solid #dbc3ae; border-radius:2px; color:#fff4f5; padding:14px 55px; margin-top:46px; font:12px Georgia,serif; letter-spacing:.28em; }
-    .intro-foot { margin-top:19px; color:#c0aab1; font-size:10px; }
-    .modal { position:absolute; z-index:35; inset:0; display:flex; align-items:center; justify-content:center; padding:23px; background:#0b060cdb; }
-    .modal-content { width:100%; max-width:355px; position:relative; border:1px solid var(--gold); background:linear-gradient(150deg,#392532,#160e1b); text-align:center; padding:26px 22px; box-shadow:0 0 48px #000b; }
-    .modal-label { color:var(--gold); letter-spacing:.24em; font:11px Georgia,serif; }
-    .modal h2 { font-size:21px; font-weight:500; margin:17px 0 10px; }
-    .modal p { font-size:13px; line-height:1.95; color:#ebd7dc; }
-    .reward { display:flex; justify-content:center; gap:12px; margin:20px 0 16px; }
-    .reward span { border:1px solid #9a7182; border-radius:5px; padding:12px 16px; font-size:14px; background:#311e2a; }
-    .toast { position:absolute; z-index:45; bottom:calc(80px + env(safe-area-inset-bottom)); left:50%; transform:translate(-50%,10px); opacity:0; pointer-events:none; max-width:90%; width:max-content; background:#39202d; color:#fff; border:1px solid var(--gold); border-radius:7px; padding:10px 17px; font-size:12px; text-align:center; transition:opacity .2s,transform .2s; }
-    .toast.show { opacity:1; transform:translate(-50%,0); }
-    @media (max-height:680px) { .top{padding-top:calc(5px + env(safe-area-inset-top));padding-bottom:5px}.stats{padding-top:6px;padding-bottom:6px}.dialogue{padding:10px 17px 9px;min-height:128px}.line{font-size:12px;min-height:48px}.nav{padding-top:4px;padding-bottom:calc(4px + env(safe-area-inset-bottom))}.nav button{font-size:9px}.brand{font-size:19px}.start{margin-top:25px} }
-    @media (prefers-reduced-motion:reduce) { *,*::before,*::after { animation-duration:.01ms!important;transition-duration:.01ms!important } }
-
-    /* ── 起動演出：暗転 → 背景 → タイトル → GAME START ── */
-    .intro {
-      background:#0a070d;
-      overflow:hidden;
-      opacity:1;
-      transition:opacity .68s ease, filter .68s ease;
-    }
-    .intro::before {
-      inset:-16px;
-      border:0;
-      z-index:0;
-      background:linear-gradient(180deg,#0b0714ae 0%,#170916d7 100%),url('ren.jpg') center/cover no-repeat;
-      opacity:0;
-      transform:scale(1.12);
-      animation:renOpeningImage 2.1s cubic-bezier(.18,.65,.20,1) forwards;
-    }
-    .intro::after {
-      inset:18px;
-      border:1px solid #d6b996aa;
-      box-shadow:inset 0 0 0 6px #11091180,inset 0 0 0 7px #b8a0804d;
-      z-index:0;
-      opacity:0;
-      transform:scale(1.035);
-      animation:renOpeningFrame 1s ease .5s both;
-    }
-    .intro-content { z-index:1; }
-    .intro-eyebrow { animation:renOpeningText .8s ease .45s both; }
-    .intro h1 { animation:renOpeningTitle 1.15s cubic-bezier(.2,.7,.2,1) .82s both; }
-    .intro-divider { transform-origin:center; animation:renOpeningRule .85s ease 1.35s both; }
-    .intro-title { animation:renOpeningText .8s ease 1.52s both; }
-    .intro-sub { animation:renOpeningText .8s ease 1.68s both; }
-    .start { animation:renOpeningText .75s ease 1.95s both; transition:background .2s,border-color .2s; }
-    .start:hover { background:#733247; border-color:#fff1d9; }
-    .intro-foot { animation:renOpeningText .7s ease 2.15s both; }
-    .intro.is-leaving { opacity:0; filter:blur(5px); pointer-events:none; }
-    @keyframes renOpeningImage {
-      0% { opacity:0; transform:scale(1.12); filter:blur(8px); }
-      30% { opacity:1; }
-      100% { opacity:1; transform:scale(1); filter:blur(0); }
-    }
-    @keyframes renOpeningFrame {
-      from { opacity:0; transform:scale(1.035); }
-      to { opacity:1; transform:scale(1); }
-    }
-    @keyframes renOpeningText {
-      from { opacity:0; transform:translateY(13px); filter:blur(3px); }
-      to { opacity:1; transform:translateY(0); filter:blur(0); }
-    }
-    @keyframes renOpeningTitle {
-      from { opacity:0; transform:translateY(19px) scale(.97); filter:blur(9px); letter-spacing:.21em; }
-      to { opacity:1; transform:translateY(0) scale(1); filter:blur(0); letter-spacing:.13em; }
-    }
-    @keyframes renOpeningRule {
-      from { opacity:0; transform:scaleX(0); }
-      to { opacity:1; transform:scaleX(1); }
-    }
-    @media (prefers-reduced-motion:reduce) {
-      .intro,.intro::before,.intro::after,.intro-content * { animation:none!important; transition:none!important; }
-      .intro::before,.intro::after { opacity:1; transform:none; }
-      .intro.is-leaving { opacity:0; }
-    }
-  </style>
-</head>
-<body>
-<div class="app" id="app">
-  <header class="top">
-    <div class="brand">REN<small>PRIVATE ROOM</small></div>
-    <div class="top-right"><span class="coin" id="coin">◈ 100</span><span class="clock" id="clock">--:--</span></div>
-  </header>
-  <section class="stats" aria-label="親密度">
-    <div class="lv" id="level">LV. 01</div>
-    <div class="xp-body">
-      <div class="xp-label"><span>♡ 親密度</span><span id="xpText">0 / 30</span></div>
-      <div class="track"><div class="fill" id="xpFill"></div></div>
-    </div>
-    <button class="daily" id="dailyBtn" type="button">DAILY ●</button>
-  </section>
-  <main class="scene" id="scene">
-    <div class="scene-label">SHINONOME REN<span>好きな場所に触れてみて</span></div>
-    <svg class="art" id="art" viewBox="0 0 1280 960" preserveAspectRatio="xMidYMid slice" aria-label="蓮のイラスト。頭、目、頬、口、肩、服、手をタップできます">
-      <image id="characterImage" href="ren.jpg" width="1280" height="960"></image>
-      <g id="touchAreas">
-        <!-- タップ判定は tap-zones.json から自動で読み込みます -->
-      </g>
-      <g id="touchHints" class="hint" aria-hidden="true"></g>
-    </svg>
-    <div class="scene-help">TAP / LONG PRESS</div>
-  </main>
-  <section class="dialogue" aria-live="polite">
-    <div class="speaker"><strong>東雲 蓮</strong><small id="actionName">HOME · GREETING</small></div>
-    <p class="line" id="line">……来たのか。まあ、好きにしてけよ。</p>
-    <button class="next" id="next" type="button">TAP TO TALK　⌄</button>
-  </section>
-  <nav class="nav" aria-label="メニュー">
-    <button id="navHome" class="active" type="button"><span class="nav-icon">✧</span>ホーム</button>
-    <button id="navGift" type="button"><span class="nav-icon">♡</span>贈り物</button>
-    <button id="navImages" type="button"><span class="nav-icon">▧</span>画像</button>
-    <button id="navLog" type="button"><span class="nav-icon">☷</span>記録</button>
-    <button id="navSettings" type="button"><span class="nav-icon">⚙</span>設定</button>
-  </nav>
-
-  <div class="backdrop" id="backdrop" hidden>
-    <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="sheetTitle">
-      <div class="sheet-head"><h2 id="sheetTitle">MENU</h2><button class="close" id="close" type="button" aria-label="閉じる">×</button></div>
-      <div id="sheetBody"></div>
-    </div>
-  </div>
-  <section class="modal" id="loginModal" role="dialog" aria-modal="true" aria-labelledby="loginTitle" hidden>
-    <div class="modal-content">
-      <div class="modal-label">DAILY LOGIN BONUS</div>
-      <h2 id="loginTitle">今日も会いに来たのか。</h2>
-      <p>「……ほら。今日の分、受け取っとけ。」</p>
-      <div class="reward"><span>◈ +50</span><span>♡ +12</span></div>
-      <button class="action wide" id="claimLogin" type="button">ログインボーナスを受け取る</button>
-      <button class="action secondary wide" id="closeLogin" type="button">あとで受け取る</button>
-    </div>
-  </section>
-  <section class="intro" id="intro" role="dialog" aria-modal="true" aria-labelledby="introTitle">
-    <div class="intro-content">
-      <p class="intro-eyebrow">PRIVATE CHARACTER GAME</p>
-      <h1 id="introTitle">四人の飼育。<br>逃げ場なし</h1>
-      <div class="intro-divider"></div>
-      <p class="intro-title">REN</p>
-      <p class="intro-sub">東雲 蓮 / PRIVATE ROOM</p>
-      <button class="start" id="start" type="button">GAME START</button>
-      <div class="intro-foot">TAP TO ENTER HIS WORLD</div>
-    </div>
-  </section>
-  <div class="toast" id="toast" role="status" aria-live="polite"></div>
-</div>
-<script>
-  "use strict";
-  // ────────────────────────────────────────────────
-  // ★ セリフ編集：通常は各場所、unlockは指定Lvから追加される特別なセリフです。
-  // ────────────────────────────────────────────────
-  const LINES = {
-    hair: ["……おい、髪ぐしゃぐしゃにすんな。", "なんだよ。撫でたいなら、先に言えって。", "……そんなに触り心地いいか？"],
-    face: ["近いって。……いや、離れろとは言ってねえけど。", "……俺の顔、そんなに面白いかよ。"],
-    eyes: ["……目、合わせてくるんじゃねえよ。", "そんなに見つめんな。……落ち着かねえ。", "……何か言いてえことでもあんのか。"],
-    cheek: ["……頬、つつくなって。", "……お前、結構遠慮ねえよな。", "なに。そんなに俺の反応が見たいのかよ。"],
-    lips: ["……っ、なんだよ。", "おい。……分かっててやってんのか？"],
-    hand: ["……手、繋ぎたいのか？", "ほら。……握るなら、ちゃんと握れ。", "お前の手、あったけえな。"],
-    shoulder: ["……肩？ 何かついてるか？", "そんなに気になるなら、隣来いよ。", "……別に、寄りかかってもいいけど。"],
-    uniform: ["服が気になるのか？ ……変なとこ触んなよ。", "似合ってる？ ……そうかよ", "……そんなにじろじろ見んな。"],
-    other: ["……ん？ どうした。", "お前、さっきから落ち着きねえな。", "何か言いたいことでもあんのか？"],
-    talk: ["今日、何してたんだよ。……別に、気になっただけだろ。", "暇なら、もう少しここにいろ。", "ちゃんと飯食ったか？ ……ならいい。"]
-  };
-  const UNLOCK = [
-    {level:2,zone:"hair",text:"……別に、撫でられんのが嫌なわけじゃねえ。"},
-    {level:3,zone:"hand",text:"……ほら、こっち来い。手、離すなよ。"},
-    {level:3,zone:"cheek",text:"……お前に触られんの、もう慣れちまった。"},
-    {level:4,zone:"eyes",text:"……そんな顔で見んな。"},
-    {level:5,zone:"talk",text:"……お前が来るの、待ってた。"},
-    {level:6,zone:"lips",text:"……近くにいてくれりゃ、それでいい。"},
-    {level:7,zone:"hand",text:"手、離したくねえ。……今だけは。"}
-  ];
-  const RAPID = {
-    hair:"……何回撫でりゃ気が済むんだよ！", face:"……っおい、近え！", eyes:"あんま調子乗んなよ。",
-    cheek:"おい、何回つつくんだ。……っ、くそ。", lips:"……おい。わざとだろ。", hand:"分かった、分かったから。……手、貸せよ。",
-    shoulder:"何回叩くんだよ、呼べば聞こえる。",uniform:"服がそんなに珍しいかよ。",other:"……お前、俺で遊んでんだろ。",talk:"……せっかちだな、お前。"
-  };
-  const HOLD = {
-    hair:"……ずいぶん長く撫でてくれるじゃねえか。", face:"……そんな触り方されたら、動けねえだろ。", eyes:"……まだ、見てるつもりかよ。",
-    cheek:"……あったけえな、お前の手。", lips:"……それ以上は、知らねえからな。", hand:"……ん。しばらくこのままでいろよ。",
-    shoulder:"……なんだよ。甘えたいのか？",uniform:"……そんなに掴んで、離したくねえのか？",other:"……おい。ここにいるって。"
-  };
-  const NAMES = {hair:"頭",face:"顔",eyes:"目",cheek:"頬",lips:"口元",hand:"手",shoulder:"肩",uniform:"服",other:"背景",talk:"会話",gift:"プレゼント",login:"ログイン"};
-  // ★ 画像変更：同じフォルダにren2.png、ren3.pngを追加すると、メニューで選べます。
-  // 構図が違う画像ではタップ位置の調整が必要になる場合があります。
-  const IMAGES = [
-    {id:"default",file:"ren.jpg",name:"帝国軍服",note:"最初のイラスト"},
-    {id:"second",file:"ren2.png",name:"衣装 02",note:"ren2.png を追加"},
-    {id:"third",file:"ren3.png",name:"衣装 03",note:"ren3.png を追加"}
-  ];
-  // ── 画像別のタップ判定 ──
-  // ゲームをGitHubで公開する際、tap-zones.jsonも一緒にアップロードしてください。
-  // 画像の座標は「元画像の左上を0%、右下を100%」とする割合です。
-  // 設定ファイルがない場合も最初の画像では基本的な判定が使えます。
-  const DEFAULT_TOUCH_ZONES = [{"zone":"shoulder","shape":"ellipse","x":12.7,"y":30,"w":29,"h":51},{"zone":"shoulder","shape":"ellipse","x":67.5,"y":37,"w":30,"h":49},{"zone":"uniform","shape":"rect","x":35,"y":63,"w":45,"h":28},{"zone":"hair","shape":"ellipse","x":27.5,"y":0,"w":55,"h":43},{"zone":"face","shape":"ellipse","x":37,"y":34,"w":37,"h":35},{"zone":"eyes","shape":"ellipse","x":39,"y":36,"w":31,"h":10},{"zone":"cheek","shape":"ellipse","x":39.5,"y":45,"w":12.5,"h":13},{"zone":"cheek","shape":"ellipse","x":59.7,"y":44,"w":12,"h":14},{"zone":"lips","shape":"ellipse","x":47.5,"y":54,"w":14.5,"h":10},{"zone":"hand","shape":"ellipse","x":36,"y":76,"w":37,"h":24}];
-  const VALID_ZONES = new Set(["hair","face","eyes","cheek","lips","hand","shoulder","uniform"]);
-  let touchSettings = {images:{default:{zones:DEFAULT_TOUCH_ZONES}}};
-  let imageSize = {width:1280,height:960};
-  let imageRenderToken=0;
-  const SVG_NS="http://www.w3.org/2000/svg";
-  function validHotspots(items){
-    if(!Array.isArray(items))return [];
-    return items.slice(0,100).filter(item=>{
-      if(!item || !VALID_ZONES.has(item.zone) || !["ellipse","rect"].includes(item.shape))return false;
-      return ["x","y","w","h"].every(key=>typeof item[key]==="number"&&Number.isFinite(item[key]))
-          && item.x>=0 && item.y>=0 && item.w>0 && item.h>0
-          && item.x+item.w<=100.001 && item.y+item.h<=100.001;
-    });
-  }
-  async function loadTouchSettings(){
-    try {
-      const response=await fetch("tap-zones.json",{cache:"no-store"});
-      if(!response.ok)throw new Error("設定ファイルなし");
-      const config=await response.json();
-      if(config.version!==1 || !config.images || typeof config.images!=="object")throw new Error("設定形式が違います");
-      const cleaned={};
-      Object.entries(config.images).forEach(([id,item])=>{
-        if(!/^[a-zA-Z0-9_-]{1,40}$/.test(id)||!item||typeof item!=="object")return;
-        cleaned[id]={zones:validHotspots(item.zones)};
-        const file=typeof item.file==="string"?item.file:"";
-        const name=typeof item.name==="string"?item.name:"";
-        // 外部URLではなく、ゲームに置いた画像ファイルのみ読み込みます。
-        if(/^[a-zA-Z0-9_-]+\.(png|jpg|jpeg|webp)$/i.test(file)){
-          const existing=IMAGES.find(image=>image.id===id);
-          if(existing){existing.file=file;if(name)existing.name=name.slice(0,40);}
-          else IMAGES.push({id,file,name:name.slice(0,40)||id,note:"追加画像"});
-        }
-      });
-      touchSettings={images:cleaned};
-    }catch(error){
-      // file:// でローカルプレビューするときや未設定のときの保険です。
-      console.info("tap-zones.json: 初期設定を使用します",error.message);
-    }
-  }
-  // タップ領域の優先度。後に置いた小さい部位が上に重なる設計。
-  const ZONE_ORDER={shoulder:0,uniform:1,hair:2,face:3,eyes:4,cheek:5,lips:6,hand:7};
-  function drawTouchZones(){
-    const svg=$("art"), layer=$("touchAreas"), hints=$("touchHints");
-    const width=imageSize.width, height=imageSize.height;
-    svg.setAttribute("viewBox",`0 0 ${width} ${height}`);
-    $("characterImage").setAttribute("width",width);
-    $("characterImage").setAttribute("height",height);
-    layer.replaceChildren();hints.replaceChildren();
-    const fallback=document.createElementNS(SVG_NS,"rect");
-    fallback.setAttribute("x",0);fallback.setAttribute("y",0);
-    fallback.setAttribute("width",width);fallback.setAttribute("height",height);
-    fallback.setAttribute("class","touch-zone");fallback.dataset.zone="other";
-    layer.append(fallback);
-    const record=touchSettings.images[game.imageId];
-    const zones=record && Array.isArray(record.zones)?record.zones:game.imageId==="default"?DEFAULT_TOUCH_ZONES:[];
-    [...zones].sort((a,b)=>ZONE_ORDER[a.zone]-ZONE_ORDER[b.zone]).forEach(item=>{
-      const x=item.x/100*width,y=item.y/100*height,w=item.w/100*width,h=item.h/100*height;
-      const shape=document.createElementNS(SVG_NS,item.shape);
-      if(item.shape==="ellipse"){
-        shape.setAttribute("cx",x+w/2);shape.setAttribute("cy",y+h/2);
-        shape.setAttribute("rx",w/2);shape.setAttribute("ry",h/2);
-      }else{shape.setAttribute("x",x);shape.setAttribute("y",y);shape.setAttribute("width",w);shape.setAttribute("height",h);}
-      shape.setAttribute("class","touch-zone");shape.dataset.zone=item.zone;layer.append(shape);
-      const marker=shape.cloneNode(false);
-      marker.removeAttribute("data-zone");marker.removeAttribute("class");hints.append(marker);
-      const label=document.createElementNS(SVG_NS,"text");
-      label.setAttribute("x",x+w/2);label.setAttribute("y",y+h/2+Math.min(8,height/100));
-      label.setAttribute("font-size",Math.min(24,width/48));
-      label.textContent=NAMES[item.zone]||item.zone;hints.append(label);
-    });
-  }
-  function refreshCharacterImage(file){
-    const token=++imageRenderToken;
-    const img=new Image();
-    img.onload=()=>{
-      if(token!==imageRenderToken)return;
-      imageSize={width:img.naturalWidth,height:img.naturalHeight};
       drawTouchZones();
-    };
-    img.onerror=()=>{if(token===imageRenderToken)drawTouchZones();};
-    img.src=file;
-  }
-
-  const GIFTS = [
-    {id:"coffee",name:"缶コーヒー",icon:"☕",price:25,xp:12,level:1,lines:["……コーヒー？ ああ、助かる。ありがとよ。", "俺の分か。……ありがとな。"]},
-    {id:"bandage",name:"絆創膏",icon:"✚",price:35,xp:16,level:1,lines:["……よく気づいたな。……大した傷じゃねえよ。", "お前、変なとこ気が利くよな。……ありがと。"]},
-    {id:"charm",name:"小さなお守り",icon:"✦",price:70,xp:26,level:3,lines:["……俺に？ ……分かった。大事にする。", "似合うかは知らねえけど……持っとくよ。"]},
-    {id:"rose",name:"赤い薔薇",icon:"❀",price:90,xp:34,level:4,lines:["……これ、俺にか？ ……お前、ほんとずるいな。", "……花なんか貰うと思わなかった。ありがと。"]}
-  ];
-  const LEVELS = [0,30,75,140,230,350,500,680,890,1130]; // 10レベル（Lv.10以降はMAX）
-  const STORAGE_KEY = "ren-private-room-v2";
-  const OLD_KEY = "ren-private-room-v1";
-  const $ = id => document.getElementById(id);
-  const fresh = () => ({xp:0,coins:100,history:[],lastLogin:"",imageId:"default",theme:"wine",effects:true,typing:true,hints:false});
-  function loadSave() {
-    const original = fresh();
-    try {
-      const saved = JSON.parse(localStorage.getItem(STORAGE_KEY) || "null");
-      if (saved && typeof saved === "object") {
-        return {...original,...saved,xp:Math.max(0,Number(saved.xp)||0),coins:Math.max(0,Number(saved.coins)||0),history:Array.isArray(saved.history)?saved.history.slice(0,40):[]};
-      }
-      const old = JSON.parse(localStorage.getItem(OLD_KEY) || "null");
-      if (old && typeof old === "object") {
-        original.xp = Math.max(0,Math.min(100,Number(old.affection)||0));
-        original.history = Array.isArray(old.history)?old.history.slice(0,40):[];
-      }
-    } catch (_) { /* 保存が利用不可でもプレイ可能 */ }
-    return original;
-  }
-  let game = loadSave();
-  let availableImages = new Set(["default"]);
-  let previous = {};
-  let typeTimer = null, fullLine = "", toastTimer = null, pressTimer = null, downPoint = null, suppressClickUntil = 0;
-  let combo = {zone:"",count:0,time:0};
-  function save() { try {localStorage.setItem(STORAGE_KEY,JSON.stringify(game));}catch(_){} }
-  function today() { const d=new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`; }
-  function level() { let lv=1; LEVELS.forEach((needed,i)=>{if(game.xp>=needed)lv=i+1;});return lv; }
-  function renderStats() {
-    const lv=level(), base=LEVELS[lv-1], end=LEVELS[lv];
-    $("level").textContent="LV. "+String(lv).padStart(2,"0");
-    $("xpText").textContent=lv===LEVELS.length ? `${game.xp} / MAX` : `${game.xp-base} / ${end-base}`;
-    $("xpFill").style.width=lv===LEVELS.length ? "100%" : (100*(game.xp-base)/(end-base))+"%";
-    $("coin").textContent="◈ "+game.coins;
-    const done=game.lastLogin===today();
-    $("dailyBtn").textContent=done?"DAILY ✓":"DAILY ●";
-    $("dailyBtn").classList.toggle("claimed",done);
-  }
-  function addXp(amount) {
-    const before=level(); game.xp+=amount; const after=level(); renderStats(); save();
-    if(after>before) {toast(`親密度 LV.${after} にアップ！ 新しいセリフが解放されました`);}
-  }
-  function pick(list,key) {
-    if(!list || !list.length)return "……ん？";
-    const alternatives=list.filter(text=>text!==previous[key]);
-    const pool=alternatives.length?alternatives:list;
-    const text=pool[Math.floor(Math.random()*pool.length)]; previous[key]=text;return text;
-  }
-  function drawLine(text) {
-    fullLine=text;
-    if(typeTimer!==null) {clearInterval(typeTimer);typeTimer=null;}
-    if(!game.typing) {$("line").textContent=text;return;}
-    const chars=Array.from(text); let n=0; $("line").textContent="";
-    typeTimer=setInterval(()=>{n=Math.min(n+2,chars.length);$("line").textContent=chars.slice(0,n).join("");if(n>=chars.length){clearInterval(typeTimer);typeTimer=null;}},30);
-  }
-  function record(zone,text) {
-    game.history.unshift({zone:NAMES[zone]||zone,text,time:new Date().toLocaleString("ja-JP",{month:"2-digit",day:"2-digit",hour:"2-digit",minute:"2-digit"})});
-    game.history=game.history.slice(0,40);save();
-  }
-  function say(zone,text,label) { $("actionName").textContent=label||`TOUCH · ${NAMES[zone]||zone}`;drawLine(text);record(zone,text); }
-  function toast(text) {
-    const el=$("toast"); el.textContent=text; el.classList.add("show");
-    if(toastTimer)clearTimeout(toastTimer);
-    toastTimer=setTimeout(()=>el.classList.remove("show"),2500);
-  }
-  function sparkle(x,y,label) {
-    const r=$("scene").getBoundingClientRect(), sx=x-r.left, sy=y-r.top;
-    if(game.effects) {
-      const ring=document.createElement("span");ring.className="ripple";ring.style.left=sx+"px";ring.style.top=sy+"px";$("scene").append(ring);
-      setTimeout(()=>ring.remove(),700);
+      save();
+      playHomeVideo();
+      return;
     }
-    const f=document.createElement("span"); f.className="float";f.textContent=label; f.style.left=Math.max(70,Math.min(sx,r.width-70))+"px";f.style.top=Math.max(30,Math.min(sy,r.height-20))+"px";$("scene").append(f);
-    setTimeout(()=>f.remove(),1150);
-  }
-  function interact(zone,kind,x,y) {
-    if($("intro").hidden===false || $("loginModal").hidden===false || $("backdrop").hidden===false)return;
-    const now=Date.now();
-    if(kind==="tap"){
-      combo.count=combo.zone===zone && now-combo.time<1650 ? combo.count+1 : 1;
-      combo.zone=zone;combo.time=now;
-    }else{combo={zone:"",count:0,time:0};}
-    const unlocked=UNLOCK.filter(item=>item.zone===zone && level()>=item.level).map(item=>item.text);
-    let text;
-    if(kind==="hold" && HOLD[zone])text=HOLD[zone];
-    else if(kind==="tap" && combo.count>0 && combo.count%4===0)text=RAPID[zone]||pick(LINES[zone],zone);
-    else text=pick([...(LINES[zone]||LINES.other),...unlocked],zone);
-    const gain=kind==="hold"?3:2;
-    say(zone,text,kind==="hold"?`LONG TOUCH · ${NAMES[zone]}`:undefined);
-    addXp(gain);
-    sparkle(x,y,`♡ +${gain} · ${NAMES[zone]}`);
-  }
-  function talk() {
-    if(typeTimer!==null){clearInterval(typeTimer);typeTimer=null;$("line").textContent=fullLine;return;}
-    const pool=[...LINES.talk,...UNLOCK.filter(item=>item.zone==="talk"&&level()>=item.level).map(item=>item.text)];
-    say("talk",pick(pool,"talk"),"HOME · TALK");addXp(2);
-  }
-  $("art").addEventListener("click",event=>{
-    if(Date.now()<suppressClickUntil)return;
-    const zone=event.target.closest("[data-zone]");if(zone)interact(zone.dataset.zone,"tap",event.clientX,event.clientY);
-  });
-  $("art").addEventListener("pointerdown",event=>{
-    const target=event.target.closest("[data-zone]");if(!target)return;
-    clearTimeout(pressTimer); downPoint={x:event.clientX,y:event.clientY,zone:target.dataset.zone};
-    pressTimer=setTimeout(()=>{ if(!downPoint)return;suppressClickUntil=Date.now()+850;interact(downPoint.zone,"hold",downPoint.x,downPoint.y);downPoint=null; },690);
-  });
-  $("art").addEventListener("pointermove",event=>{
-    if(downPoint && Math.hypot(downPoint.x-event.clientX,downPoint.y-event.clientY)>16){clearTimeout(pressTimer);downPoint=null;}
-  });
-  function stopHold(){clearTimeout(pressTimer);downPoint=null;}
-  $("art").addEventListener("pointerup",stopHold);
-  $("art").addEventListener("pointercancel",stopHold);
-  $("art").addEventListener("pointerleave",stopHold);
-  $("next").addEventListener("click",talk);
-  $("navHome").addEventListener("click",()=>{closeSheet();talk();});
-  const NAV=["navHome","navGift","navImages","navLog","navSettings"];
-  function markNav(id){NAV.forEach(n=>$(n).classList.toggle("active",n===id));}
-  function openSheet(title,navId) {$("sheetTitle").textContent=title;$("sheetBody").replaceChildren();$("backdrop").hidden=false;markNav(navId);}
-  function closeSheet(){ $("backdrop").hidden=true;markNav("navHome"); }
-  $("close").addEventListener("click",closeSheet);
-  $("backdrop").addEventListener("click",e=>{if(e.target===$("backdrop"))closeSheet();});
-  document.addEventListener("keydown",e=>{if(e.key==="Escape"){$("loginModal").hidden=true;closeSheet();}});
-  // ── プレゼント：コインを使って渡す ──
-  function renderGifts(){
-    openSheet("PRESENTS","navGift");
-    const body=$("sheetBody");
-    const lead=document.createElement("p");lead.className="subtext";lead.textContent="コインを使って蓮くんにプレゼント。親密度が上がり、専用のセリフが聞けます。コインは毎日のログインでもらえます。";body.append(lead);
-    const balance=document.createElement("div");balance.className="pill";balance.textContent="所持コイン ◈ "+game.coins;body.append(balance);
-    GIFTS.forEach(gift=>{
-      const locked=level()<gift.level;
-      const card=document.createElement("div");card.className="card";
-      const heading=document.createElement("h3");heading.textContent=`${gift.icon} ${gift.name}`;
-      const desc=document.createElement("p");desc.textContent=locked?`LV.${gift.level} で解放されます`:"渡すと、プレゼント専用の反応が見られます。";
-      const row=document.createElement("div");row.className="row";
-      const cost=document.createElement("span");cost.className="muted";cost.textContent=`◈ ${gift.price}　／　♡ +${gift.xp}`;
-      const button=document.createElement("button");button.className="action";button.type="button";
-      button.disabled=locked||game.coins<gift.price;
-      button.textContent=locked?"未解放":game.coins<gift.price?"コイン不足":"プレゼントする";
-      button.addEventListener("click",()=>{
-        if(level()<gift.level||game.coins<gift.price)return;
-        game.coins-=gift.price;const text=pick(gift.lines,gift.id);say("gift",text,`PRESENT · ${gift.name}`);addXp(gift.xp);save();
-        closeSheet();toast(`${gift.name}をプレゼントしました　♡ +${gift.xp}`);
-      });
-      row.append(cost,button);card.append(heading,desc,row);body.append(card);
-    });
-  }
-  $("navGift").addEventListener("click",renderGifts);
-  // ── 画像ギャラリー：ファイルの存在を調べ、実在する画像のみ選択可 ──
-  function loadImageOptions(){
-    IMAGES.forEach(item=>{
-      const img=new Image();img.onload=()=>{availableImages.add(item.id);if(game.imageId===item.id)switchImage(item.id);if(!$("backdrop").hidden && $("sheetTitle").textContent==="ILLUSTRATIONS")renderImages();};
-      img.onerror=()=>{if(game.imageId===item.id && item.id!=="default"){game.imageId="default";switchImage("default");}};
-      img.src=item.file;
-    });
-  }
-  function switchImage(id){
     const image=IMAGES.find(item=>item.id===id)||IMAGES[0];
     if(!availableImages.has(image.id)&&image.id!=="default")return;
-    game.imageId=image.id;$("characterImage").setAttribute("href",image.file);
+    homeVideo.pause();
+    homeVideo.hidden=true;
+    $("characterImage").style.visibility="visible";
+    game.imageId=image.id;
+    $("characterImage").setAttribute("href",image.file);
     $("scene").style.setProperty("--photo",`url('${image.file}')`);
-    refreshCharacterImage(image.file);save();
+    refreshCharacterImage(image.file);
+    save();
   }
   function renderImages(){
     openSheet("ILLUSTRATIONS","navImages");
     const body=$("sheetBody");
     const desc=document.createElement("p");desc.className="subtext";
-    desc.textContent="ホーム画面に表示するイラストを選択できます。";body.append(desc);
+    desc.textContent="ホーム画面に表示するイラストや、解放済みの動画を選択できます。";body.append(desc);
     const gallery=document.createElement("div");gallery.className="gallery";
     IMAGES.forEach(item=>{
-      const ready=availableImages.has(item.id), chosen=game.imageId===item.id;
+      const ready=availableImages.has(item.id),chosen=game.imageId===item.id;
       const btn=document.createElement("button");btn.type="button";btn.className="gallery-option"+(chosen?" chosen":"");btn.disabled=!ready;
       if(ready){const img=document.createElement("img");img.src=item.file;img.alt=item.name;btn.append(img);}
       else{const placeholder=document.createElement("div");placeholder.className="placeholder";placeholder.textContent="画像未登録";btn.append(placeholder);}
       const title=document.createElement("b");title.textContent=item.name+(chosen?" ✓":"");
       const small=document.createElement("small");small.textContent=ready?(chosen?"選択中":"タップで切替"):item.note;
       btn.append(title,small);btn.addEventListener("click",()=>{switchImage(item.id);renderImages();toast("表示するイラストを変更しました");});gallery.append(btn);
-    });body.append(gallery);
+    });
+    const unlocked=level()>=MOTION_UNLOCK_LEVEL;
+    const movieBtn=document.createElement("button");movieBtn.type="button";
+    movieBtn.className="gallery-option"+(!unlocked?" movie-locked":"")+(game.imageId===MOTION.id?" chosen":"");
+    movieBtn.disabled=!unlocked;
+    const cover=document.createElement("div");cover.className="movie-cover";
+    const img=document.createElement("img");img.src=MOTION.poster;img.alt="動く蓮くんのプレビュー";
+    const badge=document.createElement("span");badge.textContent=unlocked?"MOVIE":"LOCKED";
+    cover.append(img,badge);
+    const title=document.createElement("b");title.textContent=MOTION.name+(game.imageId===MOTION.id?" ✓":"");
+    const detail=document.createElement("small");
+    detail.textContent=unlocked?(game.imageId===MOTION.id?"再生中・タップで切替":"タップで再生 / 無音ループ"):`LV.${MOTION_UNLOCK_LEVEL}で解放`;
+    movieBtn.append(cover,title,detail);
+    movieBtn.addEventListener("click",()=>{
+      switchImage(MOTION.id);
+      renderImages();
+      toast("動く蓮くんをホームに設定しました");
+    });
+    gallery.append(movieBtn);
+    body.append(gallery);
     const note=document.createElement("p");note.className="subtext";note.style.marginTop="13px";
-    note.textContent="※ タップ判定は制作者がPC用エディターで画像ごとに設定しています。";body.append(note);
+    note.textContent="※ 動画再生中は蓮くんの位置が動くため、画面全体をタップすると会話が進みます。静止画に戻すと、画像ごとの部位別タップ判定が使えます。";
+    body.append(note);
   }
   $("navImages").addEventListener("click",renderImages);
   // ── 会話履歴・解放状況 ──
@@ -1329,6 +718,7 @@
     const reducedMotion=window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     window.setTimeout(()=>{
       $("intro").hidden=true;
+      playHomeVideo();
       if(loginAvailable())showLogin();
       else {
         const hour=new Date().getHours();
@@ -1336,6 +726,13 @@
         else if(hour>=23||hour<5)drawLine("……こんな時間まで起きてんのか。無理すんなよ。");
       }
     },reducedMotion?0:700);
+  });
+  // 復帰時は再開、バックグラウンドでは電池節約のため停止。
+  document.addEventListener("visibilitychange",()=>{
+    if(document.hidden)homeVideo.pause();else playHomeVideo();
+  });
+  $("art").addEventListener("pointerdown",()=>{
+    if(game.imageId===MOTION.id && homeVideo.paused)playHomeVideo();
   });
   function updateClock(){ $("clock").textContent=new Date().toLocaleTimeString("ja-JP",{hour:"2-digit",minute:"2-digit"}); renderStats(); }
   updateClock();setInterval(updateClock,60000);
