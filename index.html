@@ -549,7 +549,7 @@
     const before=level(); game.xp+=amount; const after=level(); renderStats(); save();
     if(after>before) {
       if(before<MOTION_UNLOCK_LEVEL && after>=MOTION_UNLOCK_LEVEL){
-        toast(`LV.${after}達成！ 「動く蓮くん」が画像メニューに解放されました`);
+        toast(`LV.${after}達成！ 「軍服（モーション）」が画像メニューに解放されました`);
       }else{toast(`親密度 LV.${after} にアップ！ 新しいセリフが解放されました`);}
     }
   }
@@ -636,7 +636,7 @@
   function renderGifts(){
     openSheet("PRESENTS","navGift");
     const body=$("sheetBody");
-    const lead=document.createElement("p");lead.className="subtext";lead.textContent="コインを使って蓮くんにプレゼント。親密度が上がり、専用のセリフが聞けます。コインは毎日のログインでもらえます。";body.append(lead);
+    const lead=document.createElement("p");lead.className="subtext";lead.textContent="コインを使って蓮にプレゼントが送れます。親密度が上がり、専用のセリフが聞けます。コインは毎日のログインでもらえます。";body.append(lead);
     const balance=document.createElement("div");balance.className="pill";balance.textContent="所持コイン ◈ "+game.coins;body.append(balance);
     GIFTS.forEach(gift=>{
       const locked=level()<gift.level;
