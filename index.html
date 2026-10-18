@@ -288,7 +288,7 @@
     <button class="daily" id="dailyBtn" type="button">DAILY ●</button>
   </section>
   <main class="scene" id="scene">
-    <div class="scene-label">SHINONOME REN<span>好きな場所に触れてみて</span></div>
+    <div class="scene-label">SHINONOME REN<span>任意の場所に触れてください</span></div>
     <video class="character-video" id="characterVideo" muted playsinline webkit-playsinline autoplay loop preload="none" poster="ren-motion-poster.jpg" hidden aria-hidden="true"></video>
     <svg class="art" id="art" viewBox="0 0 1280 960" preserveAspectRatio="xMidYMid slice" aria-label="蓮のイラスト。頭、目、頬、口、肩、服、手をタップできます">
       <image id="characterImage" href="ren.jpg" width="1280" height="960"></image>
@@ -642,7 +642,7 @@
       const locked=level()<gift.level;
       const card=document.createElement("div");card.className="card";
       const heading=document.createElement("h3");heading.textContent=`${gift.icon} ${gift.name}`;
-      const desc=document.createElement("p");desc.textContent=locked?`LV.${gift.level} で解放されます`:"渡すと、プレゼント専用の反応が見られます。";
+      const desc=document.createElement("p");desc.textContent=locked?`LV.${gift.level} で解放されます`:"渡すと、プレゼントごとの反応が見られます。";
       const row=document.createElement("div");row.className="row";
       const cost=document.createElement("span");cost.className="muted";cost.textContent=`◈ ${gift.price}　／　♡ +${gift.xp}`;
       const button=document.createElement("button");button.className="action";button.type="button";
