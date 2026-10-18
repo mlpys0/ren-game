@@ -833,7 +833,7 @@
     const filtered=ALL_STORIES.filter(s=>s && s.category===category);
     if(!filtered.length){
       const p=document.createElement("p");p.className="subtext";
-      p.textContent=ALL_STORIES.length?"このカテゴリの物語は準備中です。":"stories.js を GitHub に追加すると物語が表示されます。";
+      p.textContent=ALL_STORIES.length?"このカテゴリの物語は準備中です。":"随時更新中です";
       body.append(p);return;
     }
     filtered.forEach(story=>{
@@ -855,7 +855,7 @@
     });
     if(ALL_STORIES.some(item=>item.sample)) {
       const notice=document.createElement("p");notice.className="subtext";
-      notice.style.marginTop="15px";notice.textContent="※ サンプルのお話が含まれています。stories.js の文章を編集して差し替えられます。";
+      notice.style.marginTop="15px";notice.textContent="随時更新中です";
       body.append(notice);
     }
   }
