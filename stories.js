@@ -8,7 +8,7 @@ window.REN_STORIES = [
     "unlockLevel": 1,
     "requires": null,
     "description": "ある晩のお話。",
-    "background": "IMG_9100.PNG",
+    "background": "ren.jpg",
     "rewardXp": 10,
     "steps": [
       {
@@ -158,57 +158,6 @@ window.REN_STORIES = [
             ]
           }
         ]
-      }
-    ],
-    "sprite": null,
-    "version": 1
-  },
-  {
-    "id": "love-01",
-    "category": "school",
-    "title": "第一話",
-    "episode": "SCHOOL 01-1",
-    "unlockLevel": 1,
-    "requires": null,
-    "description": "東雲蓮と送る学生生活",
-    "background": "IMG_9102.PNG",
-    "rewardXp": 10,
-    "steps": [
-      {
-        "name": "蓮",
-        "text": ""
-      },
-      {
-        "name": "蓮",
-        "text": "……もう帰んのか？"
-      },
-      {
-        "choices": [
-          {
-            "label": "「まだ一緒にいたい」",
-            "bonusXp": 5,
-            "steps": [
-              {
-                "name": "蓮",
-                "text": "……そうかよ。じゃあ、もう少しだけ。"
-              }
-            ]
-          },
-          {
-            "label": "「蓮はどうしたい？」",
-            "bonusXp": 3,
-            "steps": [
-              {
-                "name": "蓮",
-                "text": "俺に聞くなよ。……いや、帰んなくてもいいけど。"
-              }
-            ]
-          }
-        ]
-      },
-      {
-        "name": "地の文",
-        "text": "その声は、さっきより少しだけ柔らかかった。"
       }
     ],
     "sprite": null,
