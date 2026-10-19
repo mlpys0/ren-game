@@ -271,6 +271,35 @@
     @media(max-height:680px){.story-figure{top:8%;bottom:23%}.story-window{min-height:185px;max-height:65%}.story-text{min-height:55px}}
     @media(prefers-reduced-motion:reduce){.story-standing{transition:none!important}}
 
+
+    /* ── CHARACTER PROFILE：既存機能と独立した人物紹介 ── */
+    .profile-trigger {position:absolute;z-index:6;top:13px;right:13px;padding:9px 11px;border:1px solid #d9b1bd8e;
+      border-radius:5px;background:#1d101bba;color:#fff1f3;box-shadow:0 3px 18px #08040aaa;
+      font:10px Georgia,serif;letter-spacing:.14em;backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);}
+    .profile-cover {display:flex;align-items:center;gap:17px;padding:5px 0 16px;margin:0 0 12px;border-bottom:1px solid #b78a9a50;}
+    .profile-picture {width:106px;height:146px;flex:none;object-fit:cover;object-position:center 24%;
+      border:1px solid #a47d8b;border-radius:6px;background:#120b13;box-shadow:0 7px 24px #060307a6;}
+    .profile-intro {min-width:0;}
+    .profile-label {font:10px Georgia,serif;color:var(--gold);letter-spacing:.17em;}
+    .profile-intro h3 {font-size:25px;line-height:1.42;margin:11px 0 2px;letter-spacing:.1em;font-weight:500;color:#fff0f4;}
+    .profile-reading {color:#d1adbd;font-size:12px;line-height:1.6;margin:1px 0 13px;}
+    .profile-role {font-size:11px;line-height:1.7;color:#f6cdd8;border-left:2px solid var(--accent);padding-left:9px;}
+    .profile-rows {margin:9px 0 18px;}
+    .profile-row {display:grid;grid-template-columns:84px minmax(0,1fr);gap:10px;align-items:start;padding:12px 3px;
+      border-bottom:1px solid #fff1f31b;}
+    .profile-term {font-size:11px;color:var(--gold);letter-spacing:.05em;line-height:1.8;}
+    .profile-value {font-size:13px;color:#f9e9ef;line-height:1.9;white-space:pre-wrap;overflow-wrap:anywhere;}
+    .profile-notes {font-size:12px;line-height:2;color:#e9d7df;background:#1d121bc7;border-left:2px solid #9e536b;
+      border-radius:0 6px 6px 0;padding:12px 14px;margin-top:9px;white-space:pre-wrap;overflow-wrap:anywhere;}
+    .profile-date-card {border:1px solid #896273;border-radius:8px;background:#241722;padding:16px 13px;margin:16px 0 7px;}
+    .profile-date-card p {font-size:11px;line-height:1.85;color:#d4bec8;margin:7px 0 12px;}
+    .profile-date-options {display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
+    .profile-date-options select {min-width:85px;flex:1;border:1px solid #977385;background:#342331;color:#fdf2f6;
+      border-radius:5px;padding:10px 7px;font-size:16px;font-family:inherit;}
+    .profile-date-actions {display:flex;gap:8px;margin-top:11px;}
+    .profile-date-actions .action {flex:1;}
+    @media(max-width:375px){.profile-cover{gap:12px}.profile-picture{width:89px;height:128px}.profile-intro h3{font-size:21px}
+      .profile-row{grid-template-columns:69px minmax(0,1fr)}.profile-date-options select{min-width:70px}}
   </style>
 </head>
 <body>
@@ -289,6 +318,7 @@
   </section>
   <main class="scene" id="scene">
     <div class="scene-label">SHINONOME REN<span>任意の場所に触れてください</span></div>
+    <button class="profile-trigger" id="profileBtn" type="button" aria-label="東雲蓮のプロフィールを開く">PROFILE ›</button>
     <video class="character-video" id="characterVideo" muted playsinline webkit-playsinline autoplay loop preload="none" poster="ren-motion-poster.jpg" hidden aria-hidden="true"></video>
     <svg class="art" id="art" viewBox="0 0 1280 960" preserveAspectRatio="xMidYMid slice" aria-label="蓮のイラスト。頭、目、頬、口、肩、服、手をタップできます">
       <image id="characterImage" href="ren.jpg" width="1280" height="960"></image>
@@ -560,7 +590,7 @@
   const STORAGE_KEY = "ren-private-room-v2";
   const OLD_KEY = "ren-private-room-v1";
   const $ = id => document.getElementById(id);
-  const fresh = () => ({xp:0,coins:100,history:[],lastLogin:"",imageId:"default",theme:"wine",effects:true,typing:true,hints:false,playerName:"ユーザー",storyCompleted:{},storySessions:{}});
+  const fresh = () => ({xp:0,coins:100,history:[],lastLogin:"",imageId:"default",theme:"wine",effects:true,typing:true,hints:false,playerName:"ユーザー",renBirthday:"",storyCompleted:{},storySessions:{}});
   function loadSave() {
     const original = fresh();
     try {
@@ -583,6 +613,8 @@
   }
   let game = loadSave();
   game.playerName=normalizedPlayerName(game.playerName);
+  // 誕生日はプレイヤーごとに保存する任意の月日。過去データは未設定として引き継ぎます。
+  game.renBirthday=(typeof game.renBirthday==="string" && /^(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])$/.test(game.renBirthday))?game.renBirthday:"";
   function playerText(text){
     return String(text ?? "").replace(/\{\{player\}\}/g,()=>game.playerName);
   }
@@ -818,6 +850,88 @@
     body.append(note);
   }
   $("navImages").addEventListener("click",renderImages);
+
+  // ── 蓮のプロフィール：固定項目 + 誕生日のみ個別保存 ──
+  // ここを編集するとプロフィール本文を変更できます。{{player}} は設定画面の名前に変換します。
+  const REN_PROFILE = [
+    ["年齢", "22歳"],
+    ["身長", "180cm"],
+    ["一人称", "俺"],
+    ["二人称", "お前　{{player}}　律　伊織　奏斗"],
+    ["容姿", "赤黒い瞳、赤い瞳"],
+    ["立場", "追撃役／追跡担当"],
+    ["口調", "荒くて、真っ直ぐで、命令口調"]
+  ];
+  const REN_PERSONALITY = "強引に組み敷き、恐怖で涙を流す{{player}}の顔を眺めながら荒々しく暴くドS";
+  function birthdayText(value){
+    if(!value)return "未設定";
+    const [month,day]=value.split("-").map(Number);
+    return `${month}月${day}日`;
+  }
+  function renderProfile(){
+    openSheet("CHARACTER PROFILE","navHome");
+    const body=$("sheetBody");
+    const cover=document.createElement("div");cover.className="profile-cover";
+    const img=document.createElement("img");img.className="profile-picture";img.src="IMG_7095.PNG";img.alt="東雲 蓮";
+    const intro=document.createElement("div");intro.className="profile-intro";
+    const over=document.createElement("div");over.className="profile-label";over.textContent="PERSONAL DATA  /  REN";
+    const name=document.createElement("h3");name.textContent="東雲 蓮";
+    const reading=document.createElement("p");reading.className="profile-reading";reading.textContent="しののめ れん";
+    const role=document.createElement("div");role.className="profile-role";role.textContent="追撃役 / 追跡担当";
+    intro.append(over,name,reading,role);cover.append(img,intro);body.append(cover);
+    const rows=document.createElement("div");rows.className="profile-rows";
+    function addField(title,value){
+      const row=document.createElement("div");row.className="profile-row";
+      const term=document.createElement("div");term.className="profile-term";term.textContent=title;
+      const data=document.createElement("div");data.className="profile-value";data.textContent=playerText(value);
+      row.append(term,data);rows.append(row);
+      return data;
+    }
+    addField("名前","東雲 蓮（しののめ れん）");
+    addField("年齢","22歳");
+    addField("身長","180cm");
+    const birthdayField=addField("誕生日",birthdayText(game.renBirthday));
+    REN_PROFILE.slice(2).forEach(([title,value])=>addField(title,value));
+    body.append(rows);
+    const descriptionHeading=document.createElement("div");descriptionHeading.className="profile-label";
+    descriptionHeading.textContent="PERSONALITY";body.append(descriptionHeading);
+    const description=document.createElement("p");description.className="profile-notes";
+    description.textContent=playerText(REN_PERSONALITY);body.append(description);
+    const editor=document.createElement("div");editor.className="profile-date-card";
+    const dateTitle=document.createElement("div");dateTitle.className="profile-label";dateTitle.textContent="BIRTHDAY  /  誕生日を設定";
+    const dateHelp=document.createElement("p");dateHelp.textContent="蓮の誕生日はお好みの月日を設定できます。未設定のままでも遊べます。入力した誕生日はこのブラウザにだけ保存されます。";
+    const inputs=document.createElement("div");inputs.className="profile-date-options";
+    const monthSelect=document.createElement("select");monthSelect.setAttribute("aria-label","誕生月");
+    const daySelect=document.createElement("select");daySelect.setAttribute("aria-label","誕生日");
+    function option(value,label){const item=document.createElement("option");item.value=value;item.textContent=label;return item;}
+    monthSelect.append(option("","月を選択"));
+    for(let month=1;month<=12;month++)monthSelect.append(option(String(month),`${month}月`));
+    function refillDays(keepDay=""){
+      const month=Number(monthSelect.value);
+      const max=month?new Date(2024,month,0).getDate():31; // 2/29にも対応
+      daySelect.replaceChildren(option("","日を選択"));
+      for(let day=1;day<=max;day++)daySelect.append(option(String(day),`${day}日`));
+      if(keepDay && Number(keepDay)<=max)daySelect.value=String(Number(keepDay));
+    }
+    if(game.renBirthday)monthSelect.value=String(Number(game.renBirthday.slice(0,2)));
+    refillDays(game.renBirthday?game.renBirthday.slice(3):"");
+    monthSelect.addEventListener("change",()=>refillDays(daySelect.value));
+    inputs.append(monthSelect,daySelect);
+    const actions=document.createElement("div");actions.className="profile-date-actions";
+    const saveButton=document.createElement("button");saveButton.type="button";saveButton.className="action";saveButton.textContent="誕生日を保存";
+    saveButton.addEventListener("click",()=>{
+      if(!monthSelect.value || !daySelect.value){toast("月と日を選んでください");return;}
+      game.renBirthday=`${monthSelect.value.padStart(2,"0")}-${daySelect.value.padStart(2,"0")}`;
+      birthdayField.textContent=birthdayText(game.renBirthday);save();toast("誕生日を保存しました");
+    });
+    const clearButton=document.createElement("button");clearButton.type="button";clearButton.className="action secondary";clearButton.textContent="未設定に戻す";
+    clearButton.addEventListener("click",()=>{
+      game.renBirthday="";monthSelect.value="";refillDays();birthdayField.textContent="未設定";save();toast("誕生日を未設定にしました");
+    });
+    actions.append(saveButton,clearButton);editor.append(dateTitle,dateHelp,inputs,actions);body.append(editor);
+  }
+  $("profileBtn").addEventListener("click",renderProfile);
+
   // ── 会話履歴・解放状況 ──
   function renderRecords(){
     openSheet("RECORDS","navLog");const body=$("sheetBody");
@@ -890,7 +1004,7 @@
     const note=document.createElement("p");note.className="subtext";note.textContent="自動保存です。SafariとChromeなど別のブラウザ間ではデータは共有されません。ブラウザのサイトデータを削除すると進行状況も消える場合があります。";body.append(note);
     const reset=document.createElement("button");reset.type="button";reset.className="action secondary wide";reset.textContent="進行状況をすべて初期化";
     reset.addEventListener("click",()=>{
-      if(!confirm("親密度・コイン・ログボ・会話履歴・設定をすべて初期化します。よろしいですか？"))return;
+      if(!confirm("親密度・コイン・ログボ・会話履歴・設定・誕生日をすべて初期化します。よろしいですか？"))return;
       game=fresh();previous={};save();syncSettings();renderStats();switchImage("default");say("talk","……来たのか。まあ、好きにしてけよ。","HOME · GREETING");
       closeSheet();toast("セーブデータを初期化しました");
     });body.append(reset);
