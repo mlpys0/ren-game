@@ -8,7 +8,7 @@ window.REN_STORIES = [
     "unlockLevel": 1,
     "requires": null,
     "description": "ある晩のお話。",
-    "background": "ren.jpg",
+    "background": "IMG_9100.PNG",
     "rewardXp": 10,
     "steps": [
       {
@@ -171,7 +171,7 @@ window.REN_STORIES = [
     "unlockLevel": 1,
     "requires": null,
     "description": "東雲蓮と送る学生生活",
-    "background": "ren.jpg",
+    "background": "IMG_9102,PNG",
     "rewardXp": 10,
     "steps": [
       {
