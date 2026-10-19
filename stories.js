@@ -171,7 +171,7 @@ window.REN_STORIES = [
     "unlockLevel": 1,
     "requires": null,
     "description": "東雲蓮と送る学生生活",
-    "background": "IMG_9102,PNG",
+    "background": "IMG_9102.PNG",
     "rewardXp": 10,
     "steps": [
       {
