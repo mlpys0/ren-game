@@ -508,7 +508,7 @@
   const STORAGE_KEY = "ren-private-room-v2";
   const OLD_KEY = "ren-private-room-v1";
   const $ = id => document.getElementById(id);
-  const fresh = () => ({xp:0,coins:100,history:[],lastLogin:"",imageId:"default",theme:"wine",effects:true,typing:true,hints:false,storyCompleted:{},storySessions:{}});
+  const fresh = () => ({xp:0,coins:100,history:[],lastLogin:"",imageId:"default",theme:"wine",effects:true,typing:true,hints:false,playerName:"ユーザー",storyCompleted:{},storySessions:{}});
   function loadSave() {
     const original = fresh();
     try {
@@ -524,7 +524,16 @@
     } catch (_) { /* 保存が利用不可でもプレイ可能 */ }
     return original;
   }
+  // 名前は各プレイヤーのブラウザに保存されます。未設定なら「ユーザー」。
+  function normalizedPlayerName(value){
+    const name=String(value ?? "").replace(/[\u0000-\u001f\u007f]/g, "").trim();
+    return Array.from(name).slice(0,12).join("") || "ユーザー";
+  }
   let game = loadSave();
+  game.playerName=normalizedPlayerName(game.playerName);
+  function playerText(text){
+    return String(text ?? "").replace(/\{\{player\}\}/g,()=>game.playerName);
+  }
   if(!game.storyCompleted || typeof game.storyCompleted!=="object")game.storyCompleted={};
   if(!game.storySessions || typeof game.storySessions!=="object")game.storySessions={};
   if(game.imageId===MOTION.id && level()<MOTION_UNLOCK_LEVEL){game.imageId="default";}
@@ -560,6 +569,7 @@
     const text=pool[Math.floor(Math.random()*pool.length)]; previous[key]=text;return text;
   }
   function drawLine(text) {
+    text=playerText(text);
     fullLine=text;
     if(typeTimer!==null) {clearInterval(typeTimer);typeTimer=null;}
     if(!game.typing) {$("line").textContent=text;return;}
@@ -570,7 +580,7 @@
     game.history.unshift({zone:NAMES[zone]||zone,text,time:new Date().toLocaleString("ja-JP",{month:"2-digit",day:"2-digit",hour:"2-digit",minute:"2-digit"})});
     game.history=game.history.slice(0,40);save();
   }
-  function say(zone,text,label) { $("actionName").textContent=label||`TOUCH · ${NAMES[zone]||zone}`;drawLine(text);record(zone,text); }
+  function say(zone,text,label) { $("actionName").textContent=label||`TOUCH · ${NAMES[zone]||zone}`;drawLine(text);record(zone,playerText(text)); }
   function toast(text) {
     const el=$("toast"); el.textContent=text; el.classList.add("show");
     if(toastTimer)clearTimeout(toastTimer);
@@ -783,6 +793,23 @@
   function renderSettings(){
     openSheet("SETTINGS","navSettings");const body=$("sheetBody");
     const p=document.createElement("p");p.className="subtext";p.textContent="ゲーム画面の表示を変更できます。設定と進行状況はこのブラウザに保存されます。";body.append(p);
+    // プレイヤー名の設定：未入力なら「ユーザー」、変更は自動保存。
+    const nameRow=document.createElement("div");nameRow.className="setting-row";
+    const nameLabel=document.createElement("label");nameLabel.htmlFor="playerNameInput";nameLabel.textContent="プレイヤー名";
+    const nameInput=document.createElement("input");nameInput.id="playerNameInput";
+    nameInput.type="text";nameInput.value=game.playerName;nameInput.maxLength=24;
+    nameInput.autocomplete="off";nameInput.setAttribute("aria-label","プレイヤー名");
+    nameInput.style.cssText="width:150px;max-width:50vw;min-width:0;background:#342231;color:#fff;border:1px solid #95717f;border-radius:5px;padding:8px;font-size:16px;font-family:inherit";
+    nameInput.addEventListener("input",()=>{game.playerName=normalizedPlayerName(nameInput.value);save();});
+    nameInput.addEventListener("blur",()=>{nameInput.value=game.playerName;});
+    nameRow.append(nameLabel,nameInput);body.append(nameRow);
+    const nameReset=document.createElement("button");nameReset.type="button";
+    nameReset.className="action secondary";nameReset.textContent="名前を『ユーザー』に戻す";
+    nameReset.addEventListener("click",()=>{game.playerName="ユーザー";nameInput.value=game.playerName;save();});
+    nameReset.style.marginBottom="8px";body.append(nameReset);
+    const nameHint=document.createElement("p");nameHint.className="subtext";
+    nameHint.textContent="シナリオ内の {{player}} が、ここで設定した名前に変わります。名前は端末・ブラウザごとに保存されます。";
+    body.append(nameHint);
     const row=document.createElement("label");row.className="setting-row";
     const lab=document.createElement("span");lab.textContent="UIカラー";
     const select=document.createElement("select");
@@ -844,8 +871,8 @@
       const stat=document.createElement("span");stat.className="story-status"+(completed?" done":"");
       stat.textContent=locked?"LOCKED":completed?"読了済":progress?"つづきから":"NEW";
       head.append(epi,stat);
-      const title=document.createElement("h3");title.textContent=story.title;
-      const desc=document.createElement("p");desc.textContent=story.description||"";
+      const title=document.createElement("h3");title.textContent=playerText(story.title);
+      const desc=document.createElement("p");desc.textContent=playerText(story.description||"");
       const row=document.createElement("div");row.className="row";
       const info=document.createElement("small");info.className="muted";info.textContent=locked||`解放済 · 初回読了 ♡ +${story.rewardXp||0}`;
       const button=document.createElement("button");button.type="button";button.className="action";button.disabled=!!locked;
@@ -862,7 +889,7 @@
   $("navStory").addEventListener("click",()=>renderStoryLibrary());
   function stopStoryTyping(){if(storyTimer!==null){clearInterval(storyTimer);storyTimer=null;}}
   function storyType(text){
-    storyFullText=String(text||"");storyTextDone=false;stopStoryTyping();
+    storyFullText=playerText(text);storyTextDone=false;stopStoryTyping();
     const field=$("storyText");field.textContent="";
     if(!game.typing){field.textContent=storyFullText;storyTextDone=true;return;}
     const chars=Array.from(storyFullText);let pos=0;
@@ -889,7 +916,7 @@
     $("backdrop").hidden=true;markNav("navStory");
     $("storyScreen").hidden=false;
     $("storyCategory").textContent=STORY_CATEGORIES[story.category]?.eng||"STORY";
-    $("storyTitle").textContent=story.title;
+    $("storyTitle").textContent=playerText(story.title);
     renderStoryVisuals();
     $("storyKicker").textContent=story.episode||"STORY";
     homeVideo.pause(); // ストーリー読書中は動画再生を停止
@@ -933,7 +960,7 @@
       $("storyName").classList.add("narration");
       $("storyText").textContent="どう答えますか？";
       scene.choices.forEach(choice=>{
-        const button=document.createElement("button");button.type="button";button.textContent=choice.label;
+        const button=document.createElement("button");button.type="button";button.textContent=playerText(choice.label);
         button.addEventListener("click",()=>{
           if(!currentSession || !currentStory)return;
           const insertion=Array.isArray(choice.steps)?JSON.parse(JSON.stringify(choice.steps)):[];
@@ -944,7 +971,7 @@
         });$("storyChoices").append(button);
       });
     }else{
-      $("storyName").textContent=scene.name==="地の文"?"NARRATION":(scene.name||"NARRATION");
+      $("storyName").textContent=scene.name==="地の文"?"NARRATION":playerText(scene.name||"NARRATION");
       $("storyName").classList.toggle("narration",scene.name==="地の文"||!scene.name);
       storyType(scene.text||"");
       $("storyNext").textContent="次へ　›";
@@ -968,8 +995,8 @@
     save();
     stopStoryTyping();currentStory=null;currentSession=null;
     $("storyScreen").hidden=true;
-    if(bonus){addXp(bonus);toast(`「${story.title}」読了！ 親密度 ♡ +${bonus}`);}
-    else toast(`「${story.title}」を読み終えました`);
+    if(bonus){addXp(bonus);toast(`「${playerText(story.title)}」読了！ 親密度 ♡ +${bonus}`);}
+    else toast(`「${playerText(story.title)}」を読み終えました`);
     playHomeVideo();renderStoryLibrary(storyCategory);
   }
   function closeStory(){
