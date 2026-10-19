@@ -363,6 +363,7 @@
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
 </div>
 <script src="stories.js"></script>
+<script src="dialogues.js?v=all4-1"></script>
 <script>
   "use strict";
   // ────────────────────────────────────────────────
@@ -389,6 +390,29 @@
     {level:6,zone:"lips",text:"……近くにいてくれりゃ、それでいい。"},
     {level:7,zone:"hand",text:"手、離したくねえ。……今だけは。"}
   ];
+
+  // ── セリフ管理ファイル（dialogues.js）があれば、通常／親密度セリフに反映 ──
+  // ファイルが存在しなくても、上の LINES / UNLOCK が従来どおり使えます。
+  // セリフを増やすときは「ren-dialogue-editor.html」から dialogues.js を書き出してください。
+  if(window.REN_DIALOGUES && typeof window.REN_DIALOGUES === "object") {
+    const custom=window.REN_DIALOGUES;
+    if(custom.normal && typeof custom.normal === "object") {
+      Object.keys(LINES).forEach(zone=>{
+        if(Array.isArray(custom.normal[zone])) {
+          LINES[zone]=custom.normal[zone]
+            .filter(line=>typeof line==="string" && line.trim())
+            .map(line=>line.slice(0,2000));
+        }
+      });
+    }
+    if(Array.isArray(custom.unlock)) {
+      const allowedZones=new Set(Object.keys(LINES));
+      UNLOCK.splice(0,UNLOCK.length,...custom.unlock.filter(item=>
+        item && Number.isInteger(item.level) && item.level>=2 && item.level<=50
+        && allowedZones.has(item.zone) && typeof item.text==="string" && item.text.trim()
+      ).map(item=>({level:item.level,zone:item.zone,text:item.text.slice(0,2000)})));
+    }
+  }
   const RAPID = {
     hair:"……何回撫でりゃ気が済むんだよ！", face:"……っおい、近え！", eyes:"あんま調子乗んなよ。",
     cheek:"おい、何回つつくんだ。……っ、くそ。", lips:"……おい。わざとだろ。", hand:"分かった、分かったから。……手、貸せよ。",
@@ -399,6 +423,24 @@
     cheek:"……あったけえな、お前の手。", lips:"……それ以上は、知らねえからな。", hand:"……ん。しばらくこのままでいろよ。",
     shoulder:"……なんだよ。甘えたいのか？",uniform:"……そんなに掴んで、離したくねえのか？",other:"……おい。ここにいるって。"
   };
+  // ── 連打・長押しも dialogues.js から読み込む ──
+  // 旧形式の一文（文字列）も配列に変換し、複数候補をランダム表示できます。
+  for(const zone of Object.keys(RAPID)) RAPID[zone]=[RAPID[zone]];
+  for(const zone of Object.keys(HOLD)) HOLD[zone]=[HOLD[zone]];
+  function applySpecialLines(target,source){
+    if(!source || typeof source!=="object" || Array.isArray(source))return;
+    for(const zone of Object.keys(LINES)){
+      if(!Object.prototype.hasOwnProperty.call(source,zone))continue;
+      const value=source[zone];
+      const pool=Array.isArray(value)?value:(typeof value==="string"?[value]:null);
+      if(pool!==null)target[zone]=pool.filter(line=>typeof line==="string" && line.trim())
+        .map(line=>line.slice(0,2000));
+    }
+  }
+  if(window.REN_DIALOGUES && typeof window.REN_DIALOGUES==="object"){
+    applySpecialLines(RAPID,window.REN_DIALOGUES.rapid);
+    applySpecialLines(HOLD,window.REN_DIALOGUES.hold);
+  }
   const NAMES = {hair:"頭",face:"顔",eyes:"目",cheek:"頬",lips:"口元",hand:"手",shoulder:"肩",uniform:"服",other:"背景",talk:"会話",gift:"プレゼント",login:"ログイン"};
   // ★ 画像変更：同じフォルダにren2.png、ren3.pngを追加すると、メニューで選べます。
   // 構図が違う画像ではタップ位置の調整が必要になる場合があります。
@@ -504,7 +546,17 @@
     {id:"charm",name:"小さなお守り",icon:"✦",price:70,xp:26,level:3,lines:["……俺に？ ……分かった。大事にする。", "似合うかは知らねえけど……持っとくよ。"]},
     {id:"rose",name:"赤い薔薇",icon:"❀",price:90,xp:34,level:4,lines:["……これ、俺にか？ ……お前、ほんとずるいな。", "……花なんか貰うと思わなかった。ありがと。"]}
   ];
-  const LEVELS = [0,30,75,140,230,350,500,680,890,1130]; // 10レベル（Lv.10以降はMAX）
+  // ── 親密度 LV.1〜50 ──
+  // LV.1〜10の必要XPは以前と同じ。LV.11〜50は少しずつ必要XPが増えます。
+  // LEVELS[i] は LV.(i+1) に到達するための累計XPです。
+  const LEVELS = (()=>{
+    const thresholds=[0,30,75,140,230,350,500,680,890,1130];
+    for(let lv=11;lv<=50;lv++){
+      const need=Math.min(350,250+(lv-11)*10);
+      thresholds.push(thresholds[thresholds.length-1]+need);
+    }
+    return thresholds;
+  })();
   const STORAGE_KEY = "ren-private-room-v2";
   const OLD_KEY = "ren-private-room-v1";
   const $ = id => document.getElementById(id);
@@ -559,7 +611,12 @@
     if(after>before) {
       if(before<MOTION_UNLOCK_LEVEL && after>=MOTION_UNLOCK_LEVEL){
         toast(`LV.${after}達成！ 「軍服（モーション）」が画像メニューに解放されました`);
-      }else{toast(`親密度 LV.${after} にアップ！ 新しいセリフが解放されました`);}
+      }else{
+        const newLineUnlocked=UNLOCK.some(item=>item.level>before && item.level<=after);
+        toast(newLineUnlocked
+          ? `親密度 LV.${after} にアップ！ 新しいセリフが解放されました`
+          : `親密度 LV.${after} にアップ！`);
+      }
     }
   }
   function pick(list,key) {
@@ -604,9 +661,14 @@
     }else{combo={zone:"",count:0,time:0};}
     const unlocked=UNLOCK.filter(item=>item.zone===zone && level()>=item.level).map(item=>item.text);
     let text;
-    if(kind==="hold" && HOLD[zone])text=HOLD[zone];
-    else if(kind==="tap" && combo.count>0 && combo.count%4===0)text=RAPID[zone]||pick(LINES[zone],zone);
-    else text=pick([...(LINES[zone]||LINES.other),...unlocked],zone);
+    const regular=[...(LINES[zone]||LINES.other),...unlocked];
+    if(kind==="hold"){
+      const pool=HOLD[zone]||[];
+      text=pick(pool.length?pool:regular,"hold:"+zone);
+    }else if(kind==="tap" && combo.count>0 && combo.count%4===0){
+      const pool=RAPID[zone]||[];
+      text=pick(pool.length?pool:regular,"rapid:"+zone);
+    }else text=pick(regular,zone);
     const gain=kind==="hold"?3:2;
     say(zone,text,kind==="hold"?`LONG TOUCH · ${NAMES[zone]}`:undefined);
     addXp(gain);
@@ -810,6 +872,9 @@
     const nameHint=document.createElement("p");nameHint.className="subtext";
     nameHint.textContent="シナリオ内の {{player}} が、ここで設定した名前に変わります。名前は端末・ブラウザごとに保存されます。";
     body.append(nameHint);
+    const dialogueHint=document.createElement("p");dialogueHint.className="subtext";
+    dialogueHint.textContent="通常セリフ・親密度限定セリフは、別添のセリフ編集ツールから追加できます。最大親密度はLV.50です。";
+    body.append(dialogueHint);
     const row=document.createElement("label");row.className="setting-row";
     const lab=document.createElement("span");lab.textContent="UIカラー";
     const select=document.createElement("select");
